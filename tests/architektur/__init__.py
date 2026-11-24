@@ -1,0 +1,1 @@
+"""Architekturtests: Schichten, Werkstatt, Gleichlauf."""

@@ -30,7 +30,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
 
 **Purpose**: packages, content tables, the unsolved workshop and the architecture guards
 
-- [ ] T001 Create the package skeleton and the layering guard.
+- [x] T001 Create the package skeleton and the layering guard.
   Create `rudersdorf/__init__.py`, `rudersdorf/fehler.py` (`NochOffen`, `Lernfehler` as in plan.md),
   empty packages `rudersdorf/kern`, `rudersdorf/labor`, `rudersdorf/ansicht`, `rudersdorf/uebung`,
   `werkstatt`, `loesung`, and test packages `tests/architektur`, `tests/missionen`, `tests/kern`,
@@ -39,7 +39,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   `werkstatt` or `loesung` imports `pygame`, when `rudersdorf/kern` imports `rudersdorf.ansicht`,
   or when `werkstatt`/`loesung` import anything from `rudersdorf` other than `daten`, `fehler` and `uebung`.
   The scanning function takes a root directory so the test can prove itself on a temporary tree
-  containing one violation of each kind. Verify: `make check`.
+  containing one violation of each kind. Verify: `make check`. — closed 2026-11-24, evidence: evidence/T001.md
 - [ ] T002 Write the content tables and the maps.
   `rudersdorf/daten.py` with every constant and table of data-model.md (Geometry, `BAUWERKE`,
   `GEGNER`, damage types, wave and difficulty formulas as plain functions `wellen_budget(n, faktor)`,
