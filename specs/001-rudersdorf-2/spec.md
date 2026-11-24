@@ -371,7 +371,7 @@ mission against the tests.
   other village buildings (population is expressed through the level of the houses).
 - **FR-020**: There MUST be at least five spells: area fire damage with burn, area slow, single
   heavy magic strike, village heal, global stun. Each MUST have a mana cost, a cooldown, an
-  unlocking church stage, and at least three levels bought in the library.
+  unlocking church stage, and three levels (level 1 on unlocking, two upgrades bought in the library).
 - **FR-021**: The player MUST be able to save in the build phase and load a saved match; invalid
   files MUST be refused with a reason and without changing the running match.
 

@@ -1,10 +1,10 @@
 # Loop — 001-rudersdorf-2
 
 Repo: `/home/koni/Projects/rudersdorf-td-2` · Branch: `001-rudersdorf-2` · Base: `main` · Started: 2026-11-24 · Reviewers: two-model duo
-Next: stage R — triage the two spec-set review legs, then dispatch T001
-Budget: paid review legs 1/14 (B reserve 3) · active hours 0/30 (sessions: 2026-11-24 start–) · source: set by the orchestrator at orient (default is claude=12, hours=8; raised because the feature has 46 tasks)
+Next: stage L — dispatch T001
+Budget: paid review legs 2/14 (B reserve 3) · active hours 0/30 (sessions: 2026-11-24 start–) · source: set by the orchestrator at orient (default is claude=12, hours=8; raised because the feature has 46 tasks)
 
-Budget arithmetic, in paid review legs: cap 14 · stage B reserve 3 · spent 1 (stage R) · left for L 10.
+Budget arithmetic, in paid review legs: cap 14 · stage B reserve 3 · spent 2 (stage R, two rounds) · left for L 9.
 Estimate per task: 0 (the per-task leg is reviewer A, not a paid leg); 1 only when a diff touches
 CI, the Makefile, `close-task.yml`, dependencies or security posture, or reviewer A says BLOCK.
 Expected over 46 tasks: 2–4.
@@ -13,7 +13,7 @@ Expected over 46 tasks: 2–4.
 
 - [x] 0 orient — feature dir `specs/001-rudersdorf-2`; nothing existed (new repository); branch `001-rudersdorf-2` from `main`; no inbox, no open pull requests
 - [x] P plan + tasks — generated: spec.md, plan.md, research.md, data-model.md, quickstart.md, contracts/werkstatt-api.md, tasks.md · spec set committed: 37f35ce
-- [ ] R spec-set review — `reviews/R-spec-set/` on 37f35ce · verdict: <…> · CRITICAL: <…>
+- [x] R spec-set review — round 1 on 37f35ce: BLOCK (5 CRITICAL, all fixed); round 2 on 44d37c9 in `reviews/R-spec-set/round-2/`: reviewer A BLOCK (2 CRITICAL, both mechanical contradictions from round-1 fixes, fixed), reviewer B CONCERNS · two-round cap reached; fixes of round 2 are unreviewed and listed in *Triage*
 - [ ] L task loop — see *Tasks*
 - [ ] B branch review — `reviews/B-branch/round-N/` · rounds: <n> · verdict: <…>
 - [ ] Hand-off — <date> · `pr-description.md` · PR: <none | draft link>
@@ -28,8 +28,8 @@ Expected over 46 tasks: 2–4.
 | Workshop and reference parity | `tests/architektur/test_paritaet.py` in `make check` (from T003) | triggered | no allow-list | per task |
 | Content tables consistent | `tests/kern/test_daten.py` in `make check` (from T002) | triggered | — | per task |
 | Determinism | `tests/kern/test_determinismus.py` in `make check` (from T014) | triggered | identical state hash | per task |
-| Winnability and difficulty | `make test-lang` (`tests/kern/lang_balance.py`, from T030) | holistic | SC-005, SC-006 | T033, T037, T046, B |
-| Performance | `make bench`, `tests/kern/lang_leistung.py` (from T037) | holistic | step ≤ 4 ms, frame ≤ 8 ms | T037, T046, B |
+| Winnability and difficulty | `make test-lang` (`tests/kern/lang_balance.py`, from T030) | holistic | SC-005, SC-006 | T033, T037, T046, T047, B |
+| Performance | `make bench`, `tests/kern/lang_leistung.py` (from T037) | holistic | step ≤ 4 ms, frame ≤ 8 ms | T037, T047, B |
 
 Holistic run at B: not run yet
 
@@ -56,6 +56,19 @@ Holistic run at B: not run yet
 | R1 | Two unlock sources for spells; stale task ids and file names | NOTE | B | fix | `frei_ab_kirche` only; references corrected | no |
 | R1 | Fast tests read the live `werkstatt/` and go red once the learner solves something | NOTE | B | reject | the developer suite is defined on the shipped state (tasks.md conventions); the learner uses `pruefen.py` | no |
 | R1 | Balance tables, particle cap, hard-level threshold go beyond explicit requirements | NOTE | A | reject | they are design values the plan needs; T033 may tune the numbers | no |
+| R2 | T004 forced-open case contradicted prerequisite propagation | CRITICAL | A | fix | case split: `schadensarten` alone; `wegfindung` with its dependants. Mechanical; no third round (two-round cap) | no |
+| R2 | Mission 23 base class import forbidden by the layering guard | CRITICAL | A | fix | `rudersdorf.uebung` added to the allowed imports in T001, contract and plan. Mechanical | no |
+| R2 | Constitution 1.1.0 amended without recorded owner approval | WARNING | A, B | fix | reason recorded in this commit's message; the owner chose bug hunts, clean-up and own-tests as topics in the brainstorm on 2026-11-24 and was told of the amendment the same day; still listed for validation at hand-off | validate |
+| R2 | `bauregel` stand-in could seal a one-cell ford; a faulty `darf_bauen` could freeze a match | WARNING | B | fix | engine safety net in contract and plan; cases in T006 and T012 | no |
+| R2 | `bauplan` recursion: which copy is shared | WARNING | B | fix | contract: one shared copy, inner helper, second example | no |
+| R2 | T014 smithy case and reference stubs counted as solved | WARNING | B | fix | case moved to T029; reference stubs raise `NochOffen`; plan says which capabilities the engine calls from which task | no |
+| R2 | Constructors of `Karte`, `Gegner`, `Bauwerk`, `Dorf` not fixed | WARNING | A, B | fix | plan.md *Fixed engine interfaces*; `Spiel.erzeuge_gegner` | no |
+| R2 | Breaker and the placement rule | WARNING | B | fix | plan.md rule; T028 case | no |
+| R2 | Spells adding effects without `fuege_effekt_hinzu`; tick wording; "nothing hit" message | WARNING | A, B | fix | contract; T025 cases | no |
+| R2 | Capability check did not reach the end of a match | WARNING | A | fix | T046 plays whole campaigns | no |
+| R2 | Mission 24 nested types; `labor.py` options; end screen; SC-003 for all missions | WARNING | A, B | fix | contract type list; plan `labor.main`; T016/T017; T018; T039 | no |
+| R2 | Prerequisites in two places; `spur` parameter; `schwer` case wording; research wording; FR-020 level count | NOTE | B | fix | derived from the registry; signatures and wording corrected | no |
+| R2 | Empty defence on `leicht` may survive past wave 4 with the starting numbers | NOTE | B | defer | T033 tunes the numbers until T030's slow tests pass | no |
 
 ## Tasks
 

@@ -12,8 +12,9 @@ engine code rely on exactly these. Rules listed here are the behaviour the missi
 - A **point** (`punkt`, `position`) is a tuple `(x, y)` of floats in map pixels. One cell is
   `ZELLE = 40` pixels; the centre of cell `(s, z)` is `(s * 40 + 20, z * 40 + 20)`.
 - Terrain characters and the sets `BEGEHBAR = ".%^SZ"` and `BEBAUBAR = ".^"` come from
-  `rudersdorf.daten`. Workshop modules may import `rudersdorf.daten` and `rudersdorf.fehler`
-  and each other with relative imports (`from .horde import Frost`), nothing else from the engine.
+  `rudersdorf.daten`. Workshop modules may import `rudersdorf.daten`, `rudersdorf.fehler` and (for mission 23 only)
+  `rudersdorf.uebung`, and each other with relative imports (`from .horde import Frost`); nothing
+  else from the engine.
 - `rudersdorf.fehler.NochOffen` is a subclass of `NotImplementedError`. Every mission body in
   `werkstatt/` is `raise NochOffen("Mission N: <Titel>")`.
 - Enemies passed to workshop functions are duck-typed objects with at least: `leben`, `max_leben`,
@@ -164,13 +165,16 @@ Rules:
   level, all entries of that level's `boni`. Returns a new dictionary bonus name → sum. Buildings
   at level 0 and keys missing from `katalog` contribute nothing.
 - `bauplan`: the ordered list of `(gebaeude, stufe)` purchases still needed to reach `stufe` of
-  `gebaeude`. The order is fixed by this procedure, on a private copy of `stufen`: for each level
+  `gebaeude`. The order is fixed by this procedure. One copy of `stufen` and one result list are
+  made once and shared by all recursive steps (the intended shape is an inner helper function
+  that receives both): for each level
   `n` from the building's current level + 1 up to `stufe`, first, for each key of that level's
   `braucht` in sorted order whose required level is above the copy's level, insert the plan for
   that requirement (recursively, by the same procedure); then append `(gebaeude, n)` and record
   level `n` in the copy. Purchases already covered are therefore left out and nothing appears
   twice. Example: `a` level 1 needs nothing, `a` level 2 needs `b` 1, `b` 1 needs `c` 1, nothing
-  built: `[("a", 1), ("c", 1), ("b", 1), ("a", 2)]`. Buying the list in order always satisfies
+  built: `[("a", 1), ("c", 1), ("b", 1), ("a", 2)]`. Second example: `a` 1 needs `b` 1 and `c` 1,
+  and `b` 1 also needs `c` 1: `[("c", 1), ("b", 1), ("a", 1)]`, with `c` once. Buying the list in order always satisfies
   mission 16's check at every step. The data has no cycles. `stufen` is not modified.
 - `Zauber.__init__(self, name, kosten, abklingzeit)`: stores them and sets `self.rest = 0.0`.
   `bereit(self, mana) -> bool`: `rest <= 0` and `mana >= kosten`.
@@ -186,7 +190,8 @@ Rules:
   enemy within `radius` of `punkt` takes `schaden` of type `"feuer"`; if `brand_dauer > 0`, each
   also gets `Brand(brand_dauer, brand_schaden)` through `fuege_effekt_hinzu`.
   `Eissturm(kosten, abklingzeit, radius, dauer, faktor)`: every living enemy within `radius` gets
-  `Frost(dauer, faktor)`.
+  `Frost(dauer, faktor)`. Every spell that adds an effect does it through `fuege_effekt_hinzu`,
+  so effects never stack.
   `Blitzschlag(kosten, abklingzeit, schaden, spruenge, sprungweite)`: the living enemy nearest to
   `punkt` within 120 pixels is the start of a `kettenblitz`; each enemy in the chain takes
   `schaden` of type `"magie"`. Returns `0` if there is no start.
@@ -256,7 +261,11 @@ Missions 21–23 do not raise `NochOffen`; they ship in a deliberately faulty or
   fields, sorted by `(zeile, spalte)`. `aus_daten` is the inverse and returns a `zustand`
   dictionary; it raises `ValueError` with a German message when `daten` is not a dictionary, the
   version is not 2, a key is missing, a type is wrong, a number is negative, or two buildings
-  share a cell. `aus_daten(zu_daten(z)) == z` for every valid `z`. Neither modifies its argument.
+  share a cell. Types: `karte`, `schwierigkeit`, `art`, `strategie` are `str`; `saat`, `welle`,
+  `dorf_leben`, `spalte`, `zeile`, `ausgegeben` and every value of `vorraete`, `dorf_stufen` and
+  `zauber_stufen` are `int` and not negative (`bool` does not count as `int`); `stufe` is an `int`
+  from 1 to 3; `meister` is a `str` or `None`; `endlos` is a `bool`; the three dictionaries have
+  `str` keys. Whether a kind, map or level exists is the engine's check, not this function's. `aus_daten(zu_daten(z)) == z` for every valid `z`. Neither modifies its argument.
 - **25** Each result is `{"schwierigkeit": str, "sieg": bool, "welle": int, "gold": int}`.
   `auswertung` returns `{"spiele": n, "siege": k, "siegquote": k / n, "beste_welle": max,
   "mittlere_welle": mean, "nach_schwierigkeit": {name: {the same five keys}}}`; for an empty list
@@ -266,17 +275,24 @@ Missions 21–23 do not raise `NochOffen`; they ship in a deliberately faulty or
   laboratory map at the easy level for three fixed seeds. The test plays with the package under
   test for everything (the learner's own workshop, stand-ins included, or the reference when the
   reference is selected); it never mixes in the reference. The registry therefore names missions
-  3, 4, 5, 6 and 7 as prerequisites of mission 26, and the mission document gives a starting
+  2, 3, 4, 5, 6 and 7 as prerequisites of mission 26, and the mission document gives a starting
   skeleton for the bot.
 
 ## Capabilities and stand-ins
 
 The engine uses workshop code only through capabilities. A capability is *open* when any of its
 functions raises `NochOffen`, or when a module or name it needs is missing; then its stand-in
-(`rudersdorf/ersatz.py`) is used and labelled. A capability whose missions name prerequisites is
-also treated as open (label: "wartet auf Mission …") while a prerequisite capability is open:
-`magie` waits for `effekte` and `kettenblitz`; `bauregel` waits for `wegfindung`; `bot` waits for
-`wegfindung`, `bauregel`, `reichweite` and `strategien`.
+(`rudersdorf/ersatz.py`) is used and labelled. A capability whose missions name prerequisites
+(registry key `braucht`: mission 5 → 2, 3, 4; mission 20 → 9, 12, 13; mission 26 → 2 to 7) is
+also treated as open (label: "wartet auf Mission …") while the capability of any of those missions
+is open. So `bauregel` waits for `wegfindung`; `magie` for `effekte` and `kettenblitz`; `bot` for
+`wegfindung`, `bauregel`, `reichweite` and `strategien`. This table is derived from the registry,
+never written twice.
+
+Whatever `darf_bauen` or its stand-in answers, the engine itself never accepts a placement after
+which a gate or a walking enemy is missing from the distance map in use (a safety net, so a
+faulty or missing rule cannot freeze a match). If the learner's `darf_bauen` said yes and the net
+says no, the refusal message names mission 5.
 
 | Capability | Missions | Stand-in (visibly weaker, never the real rule) |
 | --- | --- | --- |

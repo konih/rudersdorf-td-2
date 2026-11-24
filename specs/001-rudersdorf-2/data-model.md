@@ -179,7 +179,7 @@ Key → `{"name", "klasse", "frei_ab_kirche": n, "braucht_ziel": bool, "ausbau_k
 ## Mission registry — `rudersdorf/missionen.py`
 
 `MISSIONEN`: list of dictionaries `{"nummer", "spur" ("A".."E"), "titel", "modul", "namen":
-[public names], "faehigkeit": key | None, "braucht": [mission numbers of other tracks it builds on], "testklasse": "tests.missionen.test_mNN.MissionNN",
+[public names], "faehigkeit": key | None, "braucht": [numbers of missions of other capabilities it builds on], "testklasse": "tests.missionen.test_mNN.MissionNN",
 "dokument": "missionen/spur_x.md#anchor", "sterne": 1..3}`. Single source for the test runner,
 the mission board, the stand-in labels and the documentation checks.
 

@@ -103,7 +103,8 @@ tests/
 
 **Structure Decision**: one project. The dependency direction is
 `ansicht → kern → (werkbank → werkstatt | loesung, ersatz) → daten, fehler`; `labor → kern`.
-`werkstatt` and `loesung` import only `rudersdorf.daten`, `rudersdorf.fehler` and themselves.
+`werkstatt` and `loesung` import only `rudersdorf.daten`, `rudersdorf.fehler`, `rudersdorf.uebung`
+(mission 23's base class) and themselves.
 
 ## Fixed engine interfaces
 
@@ -114,7 +115,7 @@ Test tasks write stubs with exactly these signatures (bodies `raise NotImplement
 ```python
 class NochOffen(NotImplementedError): ...
 class Lernfehler(Exception):
-    def __init__(self, faehigkeit, datei, zeile, art, text, mission): ...
+    def __init__(self, faehigkeit, datei, zeile, art, text, mission, spur=""): ...
 ```
 
 ### `rudersdorf/werkbank.py`
@@ -156,6 +157,27 @@ stand-ins*); a capability with an open prerequisite is open. `erzeuge` does the 
 classes and wraps the instance so that its method calls are routed the same way. While a
 capability is open, `rufe` and `erzeuge` go straight to the stand-in.
 
+### `rudersdorf/kern/karte.py`, `gegner.py`, `bauwerk.py`, `dorf.py`
+
+```python
+def pruefe_karte(raster) -> None: ...            # raises ValueError with a German reason
+class Karte:
+    def __init__(self, raster, name="eigene"): ...   # validates with pruefe_karte
+    raster: list; name: str; breite: int; hoehe: int; starts: list; ziel: tuple
+def lade_karte(name: str, werkbank) -> Karte: ...     # reads karten/<name>.txt through the `karten` capability
+def zentrum(zelle) -> tuple: ...                      # pixel centre of a cell
+
+class Gegner:
+    def __init__(self, art: str, werkbank, leben_faktor=1.0): ...   # values from daten.GEGNER[art]
+class Bauwerk:
+    def __init__(self, art: str, zelle, auf_huegel=False): ...      # values from daten.BAUWERKE[art]
+class Dorf:
+    def __init__(self, schwierigkeit: str): ...
+```
+
+`Spiel(kartentext=...)` with a broken text raises `ValueError`. `Spiel(karte=name)` with an unknown
+name, or a file that fails validation, uses `flusstal` and says so in `meldung`.
+
 ### `rudersdorf/kern/spiel.py`
 
 ```python
@@ -171,6 +193,7 @@ class Spiel:
     meldung: str
     zeit: float           # simulated seconds
     def schritt(self, dt: float) -> None: ...
+    def erzeuge_gegner(self, art: str, zelle=None, start=None) -> Gegner: ...   # used for spawning, summoning, splitting, and by tests
     def baue(self, art: str, zelle) -> bool: ...
     def verkaufe(self, zelle) -> bool: ...
     def baue_aus(self, zelle, meister: str | None = None) -> bool: ...
@@ -206,7 +229,16 @@ Rules the core tests fix (details in `spec.md` and `data-model.md`):
   next step. Flyers move in a straight line from their gate to the village gate and have
   `zelle = None`. `rest_weg` is `abstand * ZELLE` minus the progress inside the current step for
   walkers and the straight remaining distance for flyers.
-- The cells in `besetzt` for the placement rule are every walking enemy's `zelle` and `ziel_zelle`.
+- The cells in `besetzt` for the placement rule are the `zelle` and `ziel_zelle` of every walking
+  enemy that follows the labyrinth. Flyers and breakers are not in it. A breaker follows its own
+  distance map (computed without buildings), its `rest_weg` comes from that map, and while it
+  demolishes a building its `ziel_zelle` is its own `zelle`. A building placed on a breaker's
+  cell is the next thing it demolishes.
+- After `darf_bauen` (or its stand-in) said yes, the engine applies its safety net (contract,
+  *Capabilities and stand-ins*) before accepting the placement.
+- Before a story is implemented the engine does not call that story's capabilities: village
+  (`voraussetzungen`, `boni`, `bauplan`) from T023, `magie` from T026, `speichern`, `auswertung`
+  and `bot` from T041. Until then master upgrades are unavailable (smithy level 0).
 - All randomness comes from `self.zufall = random.Random(saat)`.
 - `Gegner.erleide_schaden(menge, art) -> float` applies the `schadensarten` capability with its own
   `resistenzen`, lowers `leben` (never below 0) and returns the life actually lost. Towers,
@@ -224,6 +256,16 @@ def spiele_viele(bot, werkbank, anzahl, karte, schwierigkeit, saat=1) -> list[di
 `spiele` returns `{"schwierigkeit", "sieg", "welle", "gold", "ungueltig"}`. The bot is called once
 per build phase and then every simulated second during a wave; its actions are passed to
 `fuehre_aus`; if it does not start the wave within one call, the runner starts it.
+
+### `labor.py`
+
+```python
+def main(argv=None) -> int: ...
+# --spiele N (default 10) --schwierigkeit NAME[,NAME...] (default leicht) --karte NAME (default labor)
+# --bot mein|zufall|referenz (default mein) --saat N (default 1) --loesung
+```
+
+It prints one row per difficulty level plus a total (through the `auswertung` capability).
 
 ### `rudersdorf/ansicht/`
 

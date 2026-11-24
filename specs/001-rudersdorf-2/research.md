@@ -61,7 +61,8 @@ Decisions taken before planning, each with the alternatives that were weighed.
 ## R6 · Tests with `unittest`, reference selected by environment
 
 - **Decision**: all tests are `unittest`; `tests/missionen/` runs against `werkstatt` unless
-  `RUDERSDORF_LOESUNG=1`; everything else always uses `loesung`. Slow whole-match tests live in
+  `RUDERSDORF_LOESUNG=1`; engine tests use `loesung`, except the few that deliberately exercise
+  the shipped, untouched `werkstatt` (always-playable and shipped-state tests). Slow whole-match tests live in
   files named `lang_*.py` so the default discovery pattern skips them.
 - **Why**: the learner needs nothing but `pygame-ce`; the split keeps `make test` fast.
 - **Own-tests mission**: judged by running the learner's test class against one correct and
