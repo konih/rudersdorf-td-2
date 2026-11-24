@@ -72,7 +72,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
 
 **Purpose**: the workbench that routes every engine call into the workshop
 
-- [ ] T004 Write the tests for the workbench in `tests/kern/test_werkbank.py`, using small
+- [x] T004 Write the tests for the workbench in `tests/kern/test_werkbank.py`, using small
   temporary packages created in a temp directory (not `werkstatt` or `loesung`). Add
   `rudersdorf/werkbank.py` and `rudersdorf/ersatz.py` as stubs with the plan's signatures; the
   constructor is `Werkbank(paket, gesperrt=())`, where `gesperrt` names capabilities forced open.
@@ -95,6 +95,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - given a function raising an error / then the `Lernfehler` has a `spur` text containing the original traceback's last line (exposes: lost tracebacks)
   - given `RUDERSDORF_LOESUNG` unset, `"0"`, `"1"` / when `waehle_paket(None)` / then `"werkstatt"`, `"werkstatt"`, `"loesung"`; and `waehle_paket(True)` is `"loesung"` (exposes: the reference loaded silently)
   Verify: the new tests fail for these reasons; `make lint` is green.
+  — closed 2026-11-24, evidence: evidence/T004.md
 - [ ] T005 Implement `rudersdorf/werkbank.py` (registry `FAEHIGKEITEN` built from
   `rudersdorf/missionen.py`, loading, probing, `rufe`, `erzeuge`, `strategien`, `lade_neu`,
   `wartet_auf`, `PROBEN`, `ABHAENGIG`, `waehle_paket`) and the stand-in registry mechanism in `rudersdorf/ersatz.py` (a dictionary

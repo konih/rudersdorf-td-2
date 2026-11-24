@@ -77,6 +77,7 @@ Holistic run at B: not run yet
 | T001 | CLOSED | reviewer A (diff), 1 round, CONCERNS → APPROVE (only finding: final `make check` pending, then run green); no paid leg (no trigger) | none; proposal: forbid `rudersdorf/labor` → `rudersdorf.ansicht` in the layering guard (not in the task text) |
 | T002 | CLOSED | reviewer A (diff), 2 rounds: round 1 CONCERNS (2 WARNINGs, both verified and fixed: split-only enemy was purchasable under mission 15's rule; tower values unchecked), round 2 CONCERNS (1 NOTE, wording fixed, design change rejected) → APPROVE; no paid leg (no trigger) | none; note for T011/T028: `daten.GEGNER` as a whole is the catalogue for `erzeuge_welle` (`schleimling` has `ab_welle` = `NIE_VON_SELBST`, the boss a price that is never used) |
 | T003 | CLOSED | reviewer A (diff), 1 round, CLEAN → APPROVE; no paid leg (no trigger) | none; notes for later tasks: document anchors are `#mission-N` (T042–T045); the names-only parity rule for missions 21–23 means "every registry name exists in both packages" (T040); in the module of mission 8 the reference may add functions with the parameters `kandidaten, turm` |
+| T004 | CLOSED (verified red: 34 tests) | reviewer A (diff), 2 rounds: round 1 CONCERNS (1 WARNING, verified and fixed: no test failed when the stand-in registry was copied at construction), round 2 CLEAN → APPROVE; no paid leg (no trigger) | none; notes for T005: stand-ins live in `rudersdorf.ersatz.ERSATZ` (capability → name → function or class), looked up at every call, never needed for construction or probing; not asserted because the spec set leaves it open: what an object created before its capability opened answers afterwards, `wartet_auf` for a capability open by itself with an open prerequisite, `waehle_paket(False)`, the location fields of the `Lernfehler` of a syntax error |
 
 ## Known red
 
@@ -84,6 +85,13 @@ Tests a test task left red for a later task; excluded from "green" at close, not
 
 | Test (file:name) | Story | Written in | Cleared in |
 |---|---|---|---|
+| `tests/kern/test_werkbank.py`: `Aufrufe` (7): `test_rufe_liefert_den_wert_der_funktion`, `test_rufe_reicht_benannte_argumente_weiter`, `test_offene_funktion_wird_durch_den_ersatz_beantwortet`, `test_noch_offen_erst_beim_aufruf_schaltet_auf_den_ersatz_um`, `test_ersatz_wird_bei_jedem_aufruf_frisch_nachgeschlagen`, `test_halb_geloeste_faehigkeit_benutzt_ueberall_den_ersatz`, `test_geloeste_faehigkeit_benutzt_die_echte_funktion` | foundational | T004 | |
+| `tests/kern/test_werkbank.py`: `FehlerImLernendenCode` (3): `test_fehler_wird_zum_lernfehler_mit_datei_zeile_art_text_und_mission`, `test_lernfehler_traegt_die_urspruengliche_spur`, `test_fehler_in_der_probe_haelt_den_start_nicht_auf` | foundational | T004 | |
+| `tests/kern/test_werkbank.py`: `Offenheit` (8): `test_ein_geloestes_paket_hat_nichts_offen`, `test_offene_stehen_schon_vor_dem_ersten_aufruf_fest`, `test_gesperrt_macht_nur_diese_faehigkeit_auf`, `test_gesperrte_wegfindung_macht_auch_die_wartenden_auf`, `test_fehlendes_modul_macht_seine_faehigkeiten_auf`, `test_fehlender_name_macht_seine_faehigkeit_auf`, `test_fehlende_klasse_macht_ihre_faehigkeit_auf`, `test_leeres_paket_hat_alles_offen` | foundational | T004 | |
+| `tests/kern/test_werkbank.py`: `Voraussetzungen` (4): `test_magie_wartet_auf_gesperrte_effekte`, `test_magie_wartet_auf_ungeloeste_effekte`, `test_magie_ist_nicht_offen_wenn_alles_geloest_ist`, `test_selbst_offene_magie_wartet_auf_nichts` | foundational | T004 | |
+| `tests/kern/test_werkbank.py`: `NeuLaden` (4): `test_lade_neu_benutzt_den_geaenderten_code`, `test_lade_neu_bemerkt_eine_geloeste_mission`, `test_lade_neu_bemerkt_eine_wieder_offene_mission`, `test_tippfehler_beim_neuladen_laesst_den_alten_code_laufen` | foundational | T004 | |
+| `tests/kern/test_werkbank.py`: `Klassen` (4): `test_erzeuge_baut_die_klasse_der_werkstatt`, `test_offene_methode_wird_von_der_ersatzklasse_beantwortet`, `test_offener_bauplan_der_klasse_fuehrt_zur_ersatzklasse`, `test_noch_offen_erst_im_methodenaufruf_schaltet_auf_die_ersatzklasse_um` | foundational | T004 | |
+| `tests/kern/test_werkbank.py`: `Paketwahl` (4): `test_ohne_die_variable_wird_die_werkstatt_gewaehlt`, `test_mit_null_wird_die_werkstatt_gewaehlt`, `test_mit_eins_wird_die_loesung_gewaehlt`, `test_der_schalter_waehlt_die_loesung_auch_ohne_variable` | foundational | T004 | |
 
 ## Test changes
 
@@ -105,6 +113,9 @@ Tests from a test task changed by a later task (close-task `TEST` class); each o
 - Besides invented fixtures, break each guarded place of a copy of the real package in turn (each placeholder, each signature): that proves the guard's scope has no hole (T003).
 - The parity guard reports every public function or method the reference has and the workshop lacks: reference helpers start with an underscore or are inner functions; the only exception is extra strategies `(kandidaten, turm)` in `strategien.py` (T003).
 - The workshop guard pins each placeholder to the text `Mission N: <Titel>` of the registry, and `tests/architektur/test_missionen.py` writes the contract's tables out again: a changed title, name or module is changed in the registry, that test and the stubs together (T003).
+- A test task for a module that does not exist yet: write a throwaway implementation outside the repository, show the tests green on it and red on its mutants; that proves the tests are satisfiable together and that each one can fail (T004).
+- A rule a stub's docstring states for the implementer (here: stand-ins are looked up at every call) needs its own test, or the implementer may break it unnoticed; reviewer A looks for exactly that (T004).
+- Tests that rewrite a module and reload it must move the file's modification time on (`os.utime`), or the byte-code cache serves the old code for a same-second, same-length edit; temporary packages are built from `rudersdorf.missionen` so they stay solved under any probe input (T004).
 
 ## Where a human should look first
 
