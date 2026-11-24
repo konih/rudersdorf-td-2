@@ -170,7 +170,7 @@ def abstaende_aus(bild):
 
 
 # ---------------------------------------------------------------------------------------
-# 4. Ein Gegner zum Testen
+# 4. Ein Gegner und ein Turm zum Testen
 # ---------------------------------------------------------------------------------------
 
 
@@ -210,3 +210,14 @@ class TestGegner:
 
     def __repr__(self):
         return f"TestGegner(leben={self.leben}, x={self.x}, y={self.y}, rest_weg={self.rest_weg})"
+
+
+class TestTurm:
+    """Ein Turm nur für Tests. Eine Zielstrategie kennt von ihm nur, wo er steht: ``x`` und ``y``."""
+
+    def __init__(self, x=0.0, y=0.0):
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        return f"TestTurm(x={self.x}, y={self.y})"

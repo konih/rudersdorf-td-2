@@ -1,4 +1,4 @@
-"""Die Hilfen der Missionstests selbst: Paketwahl, Meldungen, gezeichnete Karten, Testgegner.
+"""Die Hilfen der Missionstests selbst: Paketwahl, Meldungen, gezeichnete Karten, Testgegner, Testturm.
 
 Diese Tests brauchen keine gelöste Mission. Sie sind von Anfang an grün.
 """
@@ -263,6 +263,15 @@ class DerTestgegner(unittest.TestCase):
         self.assertEqual(gegner.leben, 25)
         gegner.heile(15)
         self.assertEqual((gegner.leben, gegner.heilungen), (30, [15, 15]))
+
+
+class DerTestturm(unittest.TestCase):
+    def test_er_steht_dort_wo_man_ihn_hinstellt(self):
+        turm = helfer.TestTurm(x=200.0, y=120.0)
+        self.assertEqual((turm.x, turm.y), (200.0, 120.0))
+
+    def test_in_einer_meldung_nennt_er_seinen_platz(self):
+        self.assertEqual(repr(helfer.TestTurm(x=200.0, y=120.0)), "TestTurm(x=200.0, y=120.0)")
 
 
 def offen(*argumente):

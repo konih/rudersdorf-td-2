@@ -132,7 +132,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   search, and the stand-ins `karten`, `wegfindung`, `bauregel` in `rudersdorf/ersatz.py`. Turn
   T006's tests green without changing them. Verify: `make check` (known red excepted).
   — closed 2026-11-24, evidence: evidence/T007.md
-- [ ] T008 [US1] Write the mission tests for track B in `tests/missionen/test_m06.py` … `test_m10.py`
+- [x] T008 [US1] Write the mission tests for track B in `tests/missionen/test_m06.py` … `test_m10.py`
   and `tests/kern/test_ersatz_b.py`. Cases from the contract's rules for missions 6–10, at least:
   - M6 given enemies inside, exactly on, and outside the range, and a defeated one inside / then the living ones within range in original order, a new list (exposes: `<` instead of `<=`, shooting the dead)
   - M7 given candidates with distinct `rest_weg`, `leben` and positions / then each of the five strategies picks the stated one; ties keep the earlier; empty list gives `None`; `STRATEGIEN` has the five names bound to these functions (exposes: min/max mix-ups, crashes on empty lists)
@@ -141,6 +141,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - M10 given values and an upgrade with `+`, `*` and `=` / then a new dictionary with the changes and the original untouched; `=` on a new key adds it; an unknown sign, or `+`/`*` on a missing key / then `ValueError` (exposes: mutating the tower's base values)
   - stand-ins: `reichweite` sees an enemy in the tower's row within range and not a diagonal one inside the circle; `strategien` returns some candidate and offers only `zufall`; `kettenblitz` returns `[start]`; `ausbau` reports that upgrades are unavailable
   Verify: every new test fails with `NochOffen` or an assertion; `make lint` green.
+  — closed 2026-11-24, evidence: evidence/T008.md
 - [ ] T009 [US1] Implement `loesung/tuerme.py` and `loesung/strategien.py` (missions 6–10, with
   the sixth strategy `gefaehrlichster`) and the stand-ins `reichweite`, `strategien`,
   `kettenblitz`, `ausbau`. Turn T008's tests green. Verify: `make check` (known red excepted).
