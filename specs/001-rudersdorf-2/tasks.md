@@ -96,11 +96,12 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - given `RUDERSDORF_LOESUNG` unset, `"0"`, `"1"` / when `waehle_paket(None)` / then `"werkstatt"`, `"werkstatt"`, `"loesung"`; and `waehle_paket(True)` is `"loesung"` (exposes: the reference loaded silently)
   Verify: the new tests fail for these reasons; `make lint` is green.
   — closed 2026-11-24, evidence: evidence/T004.md
-- [ ] T005 Implement `rudersdorf/werkbank.py` (registry `FAEHIGKEITEN` built from
+- [x] T005 Implement `rudersdorf/werkbank.py` (registry `FAEHIGKEITEN` built from
   `rudersdorf/missionen.py`, loading, probing, `rufe`, `erzeuge`, `strategien`, `lade_neu`,
   `wartet_auf`, `PROBEN`, `ABHAENGIG`, `waehle_paket`) and the stand-in registry mechanism in `rudersdorf/ersatz.py` (a dictionary
   capability → name → callable or class; the stand-ins themselves arrive with their stories).
   Turn T004's tests green without changing them. Verify: `make check`.
+  — closed 2026-11-24, evidence: evidence/T005.md
 
 **Checkpoint**: the engine can call workshop code safely.
 

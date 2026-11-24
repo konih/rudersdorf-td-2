@@ -20,3 +20,19 @@ er gehört.
 """
 
 ERSATZ: dict[str, dict[str, object]] = {}
+
+
+def ersatz_fuer(faehigkeit, name):
+    """Schlägt den Ersatz für ``name`` nach, bei jedem Aufruf frisch.
+
+    Entscheidung: Fehlt der Eintrag, ist das ein Fehler im Spiel selbst und kein Fehler in
+    der Werkstatt. Darum gibt es einen RuntimeError mit dem Namen der Fähigkeit und keinen
+    Lernfehler.
+    """
+    eintraege = ERSATZ.get(faehigkeit, {})
+    if name not in eintraege:
+        raise RuntimeError(
+            f"Für die Fähigkeit {faehigkeit!r} ist kein Ersatz für {name!r} eingetragen. "
+            "Das ist ein Fehler im Spiel, nicht in deiner Werkstatt."
+        )
+    return eintraege[name]
