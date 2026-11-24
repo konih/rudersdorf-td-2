@@ -128,9 +128,10 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - M5 extra: a corridor one cell wide / then building in it is false (exposes: sealing a ford)
   Verify: every new test fails with `NochOffen` or an assertion; `make lint` green.
   — closed 2026-11-24, evidence: evidence/T006.md
-- [ ] T007 [US1] Implement `loesung/raster.py` (missions 1–5) with a `collections.deque` for the
+- [x] T007 [US1] Implement `loesung/raster.py` (missions 1–5) with a `collections.deque` for the
   search, and the stand-ins `karten`, `wegfindung`, `bauregel` in `rudersdorf/ersatz.py`. Turn
   T006's tests green without changing them. Verify: `make check` (known red excepted).
+  — closed 2026-11-24, evidence: evidence/T007.md
 - [ ] T008 [US1] Write the mission tests for track B in `tests/missionen/test_m06.py` … `test_m10.py`
   and `tests/kern/test_ersatz_b.py`. Cases from the contract's rules for missions 6–10, at least:
   - M6 given enemies inside, exactly on, and outside the range, and a defeated one inside / then the living ones within range in original order, a new list (exposes: `<` instead of `<=`, shooting the dead)
