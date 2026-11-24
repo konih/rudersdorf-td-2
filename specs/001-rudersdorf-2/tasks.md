@@ -176,11 +176,12 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - given a reached village gate / then the village loses the enemy's `dorfschaden`, a `durchbruch` event exists, the enemy is gone and pays nothing (exposes: reward for breaches)
   Verify: new tests fail for these reasons (not for import errors); `make lint` green.
   — closed 2026-11-24, evidence: evidence/T012.md
-- [ ] T013 [US1] Implement `rudersdorf/kern/karte.py` (`Karte`, `pruefe_karte`, loading by name
+- [x] T013 [US1] Implement `rudersdorf/kern/karte.py` (`Karte`, `pruefe_karte`, loading by name
   from `karten/` through the `karten` capability, the blocked set, the cached distance map through
   the `wegfindung` capability), `gegner.py`, `bauwerk.py` (data and values only), a minimal
   `dorf.py` (life, resources, pay) and the parts of `spiel.py` for construction, building, selling,
   movement and breaches. Turn T012's tests green. Verify: `make check` (known red excepted).
+  — closed 2026-11-24, evidence: evidence/T013.md
 - [ ] T014 [US1] Write the core tests for combat, waves and the match in `tests/kern/test_kampf.py`,
   `tests/kern/test_wellen.py`, `tests/kern/test_spiel.py`, `tests/kern/test_determinismus.py`, with a
   stub for `rudersdorf/kern/wellen.py`. Cases (FR-006–FR-008, FR-010–FR-012, FR-014, FR-015, FR-037), at least:
