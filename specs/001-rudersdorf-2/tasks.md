@@ -159,7 +159,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
 - [x] T011 [US1] Implement `loesung/horde.py` (missions 11–15) and the stand-ins `schadensarten`,
   `effekte`, `faehigkeiten`, `wellen`. Turn T010's tests green. Verify: `make check` (known red excepted).
   — closed 2026-11-24, evidence: evidence/T011.md
-- [ ] T012 [US1] Write the core tests for map, movement and building in `tests/kern/test_karte.py`,
+- [x] T012 [US1] Write the core tests for map, movement and building in `tests/kern/test_karte.py`,
   `tests/kern/test_bewegung.py`, `tests/kern/test_bauen.py`, with stubs for `rudersdorf/kern/karte.py`,
   `gegner.py`, `bauwerk.py`, `dorf.py` and `spiel.py` carrying the plan's signatures (plan.md, *Fixed engine interfaces*; enemies are placed with `Spiel.erzeuge_gegner`). Tests build a
   `Spiel` with `Werkbank("loesung")` and a small `kartentext`. Cases (FR-001–FR-006), at least:
@@ -175,6 +175,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - given an enemy with a resistance 0.4 against `stich` / when `erleide_schaden(20, "stich")` / then it loses 8 life, the call returns 8, and life never goes below 0 (exposes: resistances applied twice or not at all)
   - given a reached village gate / then the village loses the enemy's `dorfschaden`, a `durchbruch` event exists, the enemy is gone and pays nothing (exposes: reward for breaches)
   Verify: new tests fail for these reasons (not for import errors); `make lint` green.
+  — closed 2026-11-24, evidence: evidence/T012.md
 - [ ] T013 [US1] Implement `rudersdorf/kern/karte.py` (`Karte`, `pruefe_karte`, loading by name
   from `karten/` through the `karten` capability, the blocked set, the cached distance map through
   the `wegfindung` capability), `gegner.py`, `bauwerk.py` (data and values only), a minimal
