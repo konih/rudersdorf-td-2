@@ -146,7 +146,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   the sixth strategy `gefaehrlichster`) and the stand-ins `reichweite`, `strategien`,
   `kettenblitz`, `ausbau`. Turn T008's tests green. Verify: `make check` (known red excepted).
   — closed 2026-11-24, evidence: evidence/T009.md
-- [ ] T010 [US1] Write the mission tests for track C in `tests/missionen/test_m11.py` … `test_m15.py`
+- [x] T010 [US1] Write the mission tests for track C in `tests/missionen/test_m11.py` … `test_m15.py`
   and `tests/kern/test_ersatz_c.py`. Cases from the contract's rules for missions 11–15, at least:
   - M11 given damage 20 and factor 0.4 / then 8; a missing type counts as 1; zero and negative damage give 0 (exposes: healing by negative damage, `KeyError`)
   - M12 given each effect class / then `name`, `rest`, `ist_vorbei`, `tempo_faktor` as stated; `tick` never goes below 0 and ignores negative time; `Gift` with 1 s left and a 3 s tick deals one second of damage of type `gift`; `Brand` deals `feuer`; `Betaeubung` gives factor 0 until over; `Frost`, `Gift`, `Betaeubung` are subclasses of `Effekt` and `Brand` of `Gift` (exposes: damage after the effect ended, duplicated instead of inherited code)
@@ -155,6 +155,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - M15 given a catalogue and seeds / then only unlocked non-boss kinds, total price within budget, nothing affordable left over, same seed same wave, different seeds usually different waves, budget below the cheapest price gives `[]` (exposes: bosses in ordinary waves, endless loops, overspending)
   - stand-ins: `schadensarten` returns the damage unchanged for factor 0.4; `effekte` classes exist with factor 1.0 and no damage; `faehigkeiten` classes return `[]` and heal nobody; `wellen` returns only `ork`
   Verify: every new test fails with `NochOffen` or an assertion; `make lint` green.
+  — closed 2026-11-24, evidence: evidence/T010.md
 - [ ] T011 [US1] Implement `loesung/horde.py` (missions 11–15) and the stand-ins `schadensarten`,
   `effekte`, `faehigkeiten`, `wellen`. Turn T010's tests green. Verify: `make check` (known red excepted).
 - [ ] T012 [US1] Write the core tests for map, movement and building in `tests/kern/test_karte.py`,

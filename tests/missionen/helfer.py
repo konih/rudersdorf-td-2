@@ -48,6 +48,125 @@ def nur_die_reihenfolge_ist_anders(bekommen, erwartet):
     return all(eintrag in bekommen for eintrag in erwartet)
 
 
+def fast_gleich(bekommen, erwartet):
+    """Sagt, ob ``bekommen`` eine Zahl ist, die bis auf einen winzigen Rundungsrest ``erwartet`` ist.
+
+    Kommazahlen runden ein wenig: 0.1 + 0.2 ist nicht genau 0.3. Darum vergleichen die Tests
+    Zahlen so. Die Funktion kommt mit jeder Antwort zurecht: ``None``, ein Text oder ``True``
+    sind einfach keine passende Zahl.
+    """
+    if isinstance(bekommen, bool) or not isinstance(bekommen, (int, float)):
+        return False
+    return abs(bekommen - erwartet) <= 1e-9
+
+
+def alle_fast_gleich(bekommen, erwartet):
+    """Sagt, ob ``bekommen`` eine Liste aus genau den Zahlen der Liste ``erwartet`` ist."""
+    if not isinstance(bekommen, list) or len(bekommen) != len(erwartet):
+        return False
+    return all(fast_gleich(zahl, soll) for zahl, soll in zip(bekommen, erwartet, strict=True))
+
+
+def schaeden_fast_gleich(bekommen, erwartet):
+    """Sagt, ob die Schäden ``bekommen`` genau die Liste ``erwartet`` aus ``(menge, art)`` sind.
+
+    Auch hier darf in ``bekommen`` stehen, was will: Eine Menge ``None`` passt einfach nicht.
+    """
+    if not isinstance(bekommen, list) or len(bekommen) != len(erwartet):
+        return False
+    for eintrag, (menge, art) in zip(bekommen, erwartet, strict=True):
+        if not isinstance(eintrag, tuple) or len(eintrag) != 2:
+            return False
+        if not fast_gleich(eintrag[0], menge) or eintrag[1] != art:
+            return False
+    return True
+
+
+def kurz(liste, hoechstens=12):
+    """Schreibt eine Liste für eine Meldung auf. Von einer sehr langen zeigt sie nur den Anfang."""
+    if not isinstance(liste, list) or len(liste) <= hoechstens:
+        return repr(liste)
+    anfang = ", ".join(repr(eintrag) for eintrag in liste[:hoechstens])
+    return f"[{anfang}, ... und {len(liste) - hoechstens} weitere]"
+
+
+def wellenfehler(welle, nummer, budget, katalog):
+    """Prüft eine Welle aus Mission 15 an den Regeln und liefert den ersten Verstoß.
+
+    Das Ergebnis ist ``None``, wenn alles stimmt, sonst die drei Teile einer Meldung als Tupel
+    ``(erwartet, bekommen, tipp)``. Welche Arten genau in der Welle stehen, ist Zufall. Geprüft
+    wird darum nur, was für jede richtige Welle gilt:
+
+    - sie ist eine Liste aus Namen von Arten des Katalogs,
+    - kein Boss und keine Art, die erst in einer späteren Welle erscheint,
+    - alle zusammen kosten höchstens das Budget,
+    - für das Geld, das übrig bleibt, gäbe es keinen erlaubten Gegner mehr.
+
+    Die Funktion kommt mit jeder Antwort zurecht, auch mit ``None`` oder einer endlos langen Liste.
+    """
+    if not isinstance(welle, list):
+        return (
+            "eine Liste mit den Namen der Arten",
+            repr(welle),
+            "Beginne mit einer leeren Liste, hänge jeden gekauften Gegner an und gib sie am "
+            "Ende mit return zurück.",
+        )
+    billigster = min((eintrag["preis"] for eintrag in katalog.values()), default=1)
+    if len(welle) > max(budget, 0) // billigster:
+        return (
+            f"höchstens {max(budget, 0) // billigster} Gegner, denn mehr kann man für "
+            f"{budget} Münzen gar nicht kaufen (der billigste kostet {billigster})",
+            f"eine Welle mit {len(welle)} Gegnern: {kurz(welle)}",
+            "Die Welle wächst viel zu lang. Jeder Kauf kostet etwas: Zieh den Preis vom Rest "
+            "ab und hör auf, sobald sich niemand mehr bezahlen lässt.",
+        )
+    for art in welle:
+        if not isinstance(art, str) or art not in katalog:
+            return (
+                f"nur Namen aus dem Katalog: {sorted(katalog)}",
+                f"den Eintrag {art!r} in der Welle {kurz(welle)}",
+                'In die Welle kommt der Name der Art, also der Schlüssel des Katalogs wie "ork".',
+            )
+        if katalog[art]["boss"]:
+            return (
+                "eine Welle ohne Boss",
+                f"den Boss {art!r} in der Welle {kurz(welle)}",
+                'Ein Boss wird nie gekauft. Lass alle Arten weg, bei denen "boss" True ist.',
+            )
+        if katalog[art]["ab_welle"] > nummer:
+            return (
+                f"in Welle {nummer} nur Arten, die schon freigeschaltet sind",
+                f"die Art {art!r}, die erst ab Welle {katalog[art]['ab_welle']} erscheint, "
+                f"in der Welle {kurz(welle)}",
+                'Eine Art darf erst mitlaufen, wenn ihr "ab_welle" höchstens so groß ist wie '
+                "die Nummer der Welle.",
+            )
+    summe = sum(katalog[art]["preis"] for art in welle)
+    if summe > max(budget, 0):  # bei einem Budget unter 0 ist die leere Welle richtig
+        return (
+            f"eine Welle, die höchstens {budget} Münzen kostet",
+            f"eine Welle für {summe} Münzen: {kurz(welle)}",
+            "Als Kandidat zählt nur, wer höchstens so viel kostet, wie noch übrig ist. "
+            "Prüfe das vor jedem Kauf neu.",
+        )
+    rest = budget - summe
+    noch_bezahlbar = sorted(
+        art
+        for art, eintrag in katalog.items()
+        if not eintrag["boss"] and eintrag["ab_welle"] <= nummer and eintrag["preis"] <= rest
+    )
+    if noch_bezahlbar:
+        return (
+            f"das Budget {budget} wird ausgegeben, bis sich kein erlaubter Gegner mehr "
+            "bezahlen lässt",
+            f"es sind noch {rest} Münzen übrig, das reicht für {noch_bezahlbar}; "
+            f"die Welle war {kurz(welle)}",
+            "Hör erst auf, wenn die Liste der Kandidaten leer ist. Ist nur der gerade "
+            "gewählte Gegner zu teuer, passt vielleicht noch ein billigerer.",
+        )
+    return None
+
+
 class Missionstest(unittest.TestCase):
     """Die Grundlage aller Missionstests: lädt das Modul und meldet Fehler in drei Teilen."""
 
@@ -90,6 +209,20 @@ class Missionstest(unittest.TestCase):
                 )
             )
 
+    def erzeuge(self, klasse, *argumente, tipp=None):
+        """Erzeugt ein Objekt der Klasse mit dem Namen ``klasse`` aus der Werkstatt.
+
+        Stürzt das Erzeugen ab, gibt es wie bei ``rufe_sicher`` eine Meldung mit Tipp.
+        """
+        aufruf = f"{klasse}({', '.join(repr(argument) for argument in argumente)})"
+        if tipp is None:
+            tipp = (
+                f"Der Fehler entsteht beim Erzeugen, also im __init__ von {klasse} oder im "
+                "__init__ der Klasse, von der geerbt wird. Weiter oben in der Ausgabe steht "
+                "die Zeile in deiner Datei."
+            )
+        return self.rufe_sicher(aufruf, tipp, lambda: getattr(self.werkstatt, klasse)(*argumente))
+
     def pruefe_unveraendert(self, vorher, nachher, was, aufruf, tipp):
         """Meldet einen Fehler, wenn der Aufruf etwas verändert hat, das ihm nur geliehen war."""
         if vorher != nachher:
@@ -97,6 +230,47 @@ class Missionstest(unittest.TestCase):
                 meldung(
                     f"{aufruf} lässt {was} so, wie es war: {vorher!r}",
                     f"danach war {was} {nachher!r}",
+                    tipp,
+                )
+            )
+
+    def pruefe_zahl(self, bekommen, erwartet, aufruf, tipp):
+        """Meldet einen Fehler, wenn ``bekommen`` nicht die Zahl ``erwartet`` ist (siehe ``fast_gleich``)."""
+        if not fast_gleich(bekommen, erwartet):
+            self.fail(meldung(f"{aufruf} ergibt {erwartet!r}", repr(bekommen), tipp))
+
+    def lies_attribut(self, ding, name, tipp):
+        """Liest ``ding.name``. Fehlt das Attribut, gibt es eine Meldung mit Tipp statt eines Absturzes."""
+        fehlt = object()
+        wert = getattr(ding, name, fehlt)
+        if wert is fehlt:
+            self.fail(
+                meldung(
+                    f"{type(ding).__name__} hat das Attribut {name}",
+                    f"{type(ding).__name__} hat kein Attribut {name}",
+                    tipp,
+                )
+            )
+        return wert
+
+    def pruefe_schaeden(self, gegner, erwartet, aufruf, tipp):
+        """Meldet einen Fehler, wenn der Testgegner nicht genau diese Schäden ``(menge, art)`` erlitt."""
+        if not schaeden_fast_gleich(gegner.schaeden, erwartet):
+            self.fail(
+                meldung(
+                    f"nach {aufruf} hat der Gegner diese Schäden (menge, art) erlitten: {erwartet}",
+                    f"er hat diese erlitten: {gegner.schaeden}",
+                    tipp,
+                )
+            )
+
+    def pruefe_heilungen(self, gegner, erwartet, aufruf, tipp):
+        """Meldet einen Fehler, wenn der Testgegner nicht genau diese Mengen an Heilung bekam."""
+        if not alle_fast_gleich(gegner.heilungen, erwartet):
+            self.fail(
+                meldung(
+                    f"nach {aufruf} wurde {gegner} mit diesen Mengen geheilt: {erwartet}",
+                    f"geheilt wurde mit diesen Mengen: {gegner.heilungen}",
                     tipp,
                 )
             )
@@ -170,7 +344,7 @@ def abstaende_aus(bild):
 
 
 # ---------------------------------------------------------------------------------------
-# 4. Ein Gegner und ein Turm zum Testen
+# 4. Ein Gegner, ein Effekt und ein Turm zum Testen
 # ---------------------------------------------------------------------------------------
 
 
@@ -210,6 +384,36 @@ class TestGegner:
 
     def __repr__(self):
         return f"TestGegner(leben={self.leben}, x={self.x}, y={self.y}, rest_weg={self.rest_weg})"
+
+
+class TestEffekt:
+    """Ein Effekt nur für Tests, damit die Missionen 13 und 14 nicht von Mission 12 abhängen.
+
+    Er hat, was die Effekte aus Mission 12 haben: ``name``, ``dauer``, ``rest``, ``tick``,
+    ``ist_vorbei`` und ``tempo_faktor``. In einem ist er mit Absicht dumm: Er nennt seinen
+    Faktor auch dann noch, wenn er längst vorbei ist. Wer nur die Effekte fragt, die noch
+    wirken, merkt davon nichts.
+    """
+
+    def __init__(self, name, rest=1.0, faktor=1.0):
+        self.name = name
+        self.dauer = rest
+        self.rest = rest
+        self.faktor = faktor
+
+    def tick(self, gegner, sekunden):
+        """Lässt die Zeit vergehen, nie unter 0. Negative Zeit ändert nichts."""
+        if sekunden > 0:
+            self.rest = max(0.0, self.rest - sekunden)
+
+    def ist_vorbei(self):
+        return self.rest <= 0
+
+    def tempo_faktor(self):
+        return self.faktor
+
+    def __repr__(self):
+        return f"TestEffekt({self.name!r}, rest={self.rest}, faktor={self.faktor})"
 
 
 class TestTurm:
