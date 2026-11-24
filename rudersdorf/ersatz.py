@@ -17,10 +17,13 @@ So ist es vereinbart:
 
 Ein Ersatz ist mit Absicht schwächer als die echte Regel, und er ist nie die Lösung einer
 Mission. Jeder Ersatz kommt zusammen mit dem Teil des Spiels, zu dem er gehört. Bis jetzt
-gibt es den Ersatz zu Spur A: Karten, Wegfindung und Bauregel.
+gibt es den Ersatz zu Spur A (Karten, Wegfindung und Bauregel) und zu Spur B (Reichweite,
+Zielstrategien, Kettenblitz und Ausbau).
 """
 
-from rudersdorf.daten import BEBAUBAR
+import math
+
+from rudersdorf.daten import BEBAUBAR, ZELLE
 
 # --- Fähigkeit "karten" (Mission 1) ---------------------------------------------------------
 
@@ -158,6 +161,74 @@ def ersatz_darf_bauen(raster, zelle, gesperrt, starts, ziel, besetzt):
     return True
 
 
+# --- Fähigkeit "reichweite" (Mission 6): der Tunnelblick --------------------------------------
+
+
+def ersatz_in_reichweite(position, reichweite, gegner):
+    """Ersatz für ``in_reichweite``: Der Turm sieht nur geradeaus, nie schräg.
+
+    Er sieht einen lebenden Gegner nur, wenn der in derselben Zeile oder in derselben Spalte
+    der Karte steht wie der Turm, und auch dann nur bis zu seiner Reichweite. Wer schräg
+    neben dem Turm vorbeiläuft, bleibt unbemerkt. Mission 6 (Wer ist in Reichweite?) ersetzt das.
+    """
+    turm_x, turm_y = position
+    turm_spalte = turm_x // ZELLE
+    turm_zeile = turm_y // ZELLE
+    gesehen = []
+    for einer in gegner:
+        if einer.leben <= 0:
+            continue
+        if einer.x // ZELLE != turm_spalte and einer.y // ZELLE != turm_zeile:
+            continue
+        if math.hypot(einer.x - turm_x, einer.y - turm_y) <= reichweite:
+            gesehen.append(einer)
+    return gesehen
+
+
+# --- Fähigkeit "strategien" (Missionen 7 und 8) ----------------------------------------------
+
+
+def ersatz_zufall(kandidaten, turm):
+    """Ersatz für die Zielstrategien: irgendein Kandidat, mal dieser und mal jener.
+
+    Der Ersatz würfelt nicht wirklich, und er merkt sich nichts von einem Aufruf zum nächsten.
+    Er zählt zusammen, wo die Kandidaten gerade stehen (alle x und alle y), und nimmt die
+    ganze Zahl davon als Nummer in der Liste. Weil die Gegner laufen, kommt dabei ständig ein
+    anderer heraus, ohne dass eine Regel dahintersteckt. Und weil nichts gewürfelt wird, läuft
+    dieselbe Partie jedes Mal genau gleich ab. Mission 7 (Zielstrategien) ersetzt das.
+    """
+    if len(kandidaten) == 0:
+        return None
+    summe = 0.0
+    for einer in kandidaten:
+        summe += einer.x + einer.y
+    return kandidaten[int(summe) % len(kandidaten)]
+
+
+# --- Fähigkeit "kettenblitz" (Mission 9) -----------------------------------------------------
+
+
+def ersatz_kettenblitz(start, gegner, spruenge, sprungweite):
+    """Ersatz für ``kettenblitz``: Der Blitz springt nicht, er trifft nur den ersten Gegner.
+
+    Mission 9 (Der Kettenblitz) ersetzt das.
+    """
+    return [start]
+
+
+# --- Fähigkeit "ausbau" (Mission 10) ---------------------------------------------------------
+
+
+def ersatz_wende_ausbau_an(werte, ausbau):
+    """Ersatz für ``wende_ausbau_an``: Es gibt noch keine Turmschmiede.
+
+    Der Ersatz sieht sich den Ausbau gar nicht an und antwortet immer mit ``None``. Für das
+    Spiel heißt das: Dieser Turm kann nicht ausgebaut werden. Mission 10 (Die Turmschmiede)
+    ersetzt das.
+    """
+    return None
+
+
 ERSATZ: dict[str, dict[str, object]] = {
     "karten": {
         "lies_karte": ersatz_lies_karte,
@@ -171,6 +242,19 @@ ERSATZ: dict[str, dict[str, object]] = {
     },
     "bauregel": {
         "darf_bauen": ersatz_darf_bauen,
+    },
+    "reichweite": {
+        "in_reichweite": ersatz_in_reichweite,
+    },
+    # Die Werkbank fragt bei offenen Strategien nur nach "zufall".
+    "strategien": {
+        "zufall": ersatz_zufall,
+    },
+    "kettenblitz": {
+        "kettenblitz": ersatz_kettenblitz,
+    },
+    "ausbau": {
+        "wende_ausbau_an": ersatz_wende_ausbau_an,
     },
 }
 

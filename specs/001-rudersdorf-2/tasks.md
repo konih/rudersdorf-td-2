@@ -142,9 +142,10 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - stand-ins: `reichweite` sees an enemy in the tower's row within range and not a diagonal one inside the circle; `strategien` returns some candidate and offers only `zufall`; `kettenblitz` returns `[start]`; `ausbau` reports that upgrades are unavailable
   Verify: every new test fails with `NochOffen` or an assertion; `make lint` green.
   — closed 2026-11-24, evidence: evidence/T008.md
-- [ ] T009 [US1] Implement `loesung/tuerme.py` and `loesung/strategien.py` (missions 6–10, with
+- [x] T009 [US1] Implement `loesung/tuerme.py` and `loesung/strategien.py` (missions 6–10, with
   the sixth strategy `gefaehrlichster`) and the stand-ins `reichweite`, `strategien`,
   `kettenblitz`, `ausbau`. Turn T008's tests green. Verify: `make check` (known red excepted).
+  — closed 2026-11-24, evidence: evidence/T009.md
 - [ ] T010 [US1] Write the mission tests for track C in `tests/missionen/test_m11.py` … `test_m15.py`
   and `tests/kern/test_ersatz_c.py`. Cases from the contract's rules for missions 11–15, at least:
   - M11 given damage 20 and factor 0.4 / then 8; a missing type counts as 1; zero and negative damage give 0 (exposes: healing by negative damage, `KeyError`)
