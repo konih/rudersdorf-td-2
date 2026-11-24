@@ -115,7 +115,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
 
 ### Tests and implementation for User Story 1 (each test task directly before its implementation)
 
-- [ ] T006 [US1] Write the mission tests for track A in `tests/missionen/test_m01.py` … `test_m05.py`
+- [x] T006 [US1] Write the mission tests for track A in `tests/missionen/test_m01.py` … `test_m05.py`
   and `tests/missionen/helfer.py` (package selection, a `TestGegner` double as in the contract's
   conventions, German message helpers), and the stand-in tests `tests/kern/test_ersatz_a.py`.
   Cases come from the contract's rules for missions 1–5, at least:
@@ -127,6 +127,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - stand-ins: `wegfindung` stand-in returns Manhattan distances through rock and buildings (differs from the contract on a walled grid); `bauregel` stand-in refuses a cell diagonally next to a building and allows an isolated one; `karten` stand-in offers only `flusstal`
   - M5 extra: a corridor one cell wide / then building in it is false (exposes: sealing a ford)
   Verify: every new test fails with `NochOffen` or an assertion; `make lint` green.
+  — closed 2026-11-24, evidence: evidence/T006.md
 - [ ] T007 [US1] Implement `loesung/raster.py` (missions 1–5) with a `collections.deque` for the
   search, and the stand-ins `karten`, `wegfindung`, `bauregel` in `rudersdorf/ersatz.py`. Turn
   T006's tests green without changing them. Verify: `make check` (known red excepted).
