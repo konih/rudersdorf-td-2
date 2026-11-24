@@ -75,6 +75,7 @@ Holistic run at B: not run yet
 | Task | Verdict | Review (legs, rounds, paid leg?) | Gaps / decision request |
 |---|---|---|---|
 | T001 | CLOSED | reviewer A (diff), 1 round, CONCERNS → APPROVE (only finding: final `make check` pending, then run green); no paid leg (no trigger) | none; proposal: forbid `rudersdorf/labor` → `rudersdorf.ansicht` in the layering guard (not in the task text) |
+| T002 | CLOSED | reviewer A (diff), 2 rounds: round 1 CONCERNS (2 WARNINGs, both verified and fixed: split-only enemy was purchasable under mission 15's rule; tower values unchecked), round 2 CONCERNS (1 NOTE, wording fixed, design change rejected) → APPROVE; no paid leg (no trigger) | none; note for T011/T028: `daten.GEGNER` as a whole is the catalogue for `erzeuge_welle` (`schleimling` has `ab_welle` = `NIE_VON_SELBST`, the boss a price that is never used) |
 
 ## Known red
 
@@ -96,6 +97,9 @@ Tests from a test task changed by a later task (close-task `TEST` class); each o
 - A guard's self-test loops over directories written out in the test, never over the guard's own rule tuples; otherwise a narrowed rule narrows its test (T001).
 - No mutation gate and no Markdown gate here: prove guards and logic with hand-written mutants on a copy outside the repository, run with `.venv/bin/python` and `PYTHONDONTWRITEBYTECODE=1` (T001).
 - Reviewer A flags a pending final `make check` as a WARNING; it is the planned order, answer it by running FINAL and recording it (T001).
+- A table handed to learner code must be valid under the contract's rule for that code: test the real table with the contract's rule written out in the test, not only its keys (T002).
+- A faulty-copy self-test changes a value nothing else refers to, or the checker rightly reports two errors; a cycle self-test needs a cycle that exists only through the implicit "level before" edge (T002).
+- `make check` takes under a second while the engine is small: run it before the review as well and record it, so the reviewer has no pending gate to flag (T002).
 
 ## Where a human should look first
 

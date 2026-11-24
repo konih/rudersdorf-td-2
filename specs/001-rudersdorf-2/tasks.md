@@ -40,7 +40,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   or when `werkstatt`/`loesung` import anything from `rudersdorf` other than `daten`, `fehler` and `uebung`.
   The scanning function takes a root directory so the test can prove itself on a temporary tree
   containing one violation of each kind. Verify: `make check`. — closed 2026-11-24, evidence: evidence/T001.md
-- [ ] T002 Write the content tables and the maps.
+- [x] T002 Write the content tables and the maps.
   `rudersdorf/daten.py` with every constant and table of data-model.md (Geometry, `BAUWERKE`,
   `GEGNER`, damage types, wave and difficulty formulas as plain functions `wellen_budget(n, faktor)`,
   `wellen_leben_faktor(n)`, `spawn_abstand(n)`, `SCHWIERIGKEIT`, `DORFGEBAEUDE` with all eight lines
@@ -50,7 +50,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   every ability class name and spell class name is one from the contract; every `teilt_in` kind
   exists; price and `ab_welle` are positive for generated kinds; each map file is 16 × 24, uses
   only known characters, has one `Z`, at least one `S`, and `D` exactly in columns 18–23;
-  `zwei_tore` has two `S`. Verify: `make check`.
+  `zwei_tore` has two `S`. Verify: `make check`. — closed 2026-11-24, evidence: evidence/T002.md
 - [ ] T003 Create the mission registry, the unsolved workshop and its guards.
   `rudersdorf/missionen.py` with all 26 entries (data-model.md, *Mission registry*), including
   `braucht` (mission 5: [2, 3, 4]; mission 20: [9, 12, 13]; mission 26: [2, 3, 4, 5, 6, 7]; else empty). Stub modules
