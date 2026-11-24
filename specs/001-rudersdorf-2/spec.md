@@ -61,7 +61,7 @@ enemies follow the bent route, die to towers, and the match end in victory or de
    costs gold, and selling removes it, refunds part of what was spent and re-opens the cell.
 6. **Given** the last wave is cleared with village life above zero, **Then** the match ends in
    victory; **given** village life reaches zero, **Then** it ends in defeat. Both screens show
-   wave reached, enemies defeated and gold earned, and offer a new match.
+   wave reached, enemies defeated and gold earned (`Spiel.statistik()`), and offer a new match.
 
 ---
 
@@ -359,7 +359,7 @@ mission against the tests.
 - **FR-015**: Resources MUST be gold, stone and mana. Gold comes from kills, wave bonuses, market
   and interest; stone from the quarry and a small wave bonus; mana from the church over time.
 - **FR-016**: The village MUST offer at least eight building lines, each with three to five
-  levels, each level with a cost, requirements (other buildings' levels or population) and
+  levels, each level with a cost, requirements (other buildings' levels) and
   lasting bonuses: church, smithy, market, quarry, houses, town wall, masons' lodge, library.
 - **FR-017**: Village upgrades MUST be bought only in the build phase; the bonuses of all bought
   levels add up and apply immediately.
@@ -367,7 +367,8 @@ mission against the tests.
   cathedral. It MUST heal the village after each wave, generate mana, raise maximum mana, unlock
   spells, and from stage 4 ring bells that stun all non-boss enemies at an interval.
 - **FR-019**: For any locked village upgrade the game MUST show the missing requirements and the
-  complete ordered list of upgrades needed to reach it.
+  complete ordered list of village upgrades needed to reach it. Requirements are always levels of
+  other village buildings (population is expressed through the level of the houses).
 - **FR-020**: There MUST be at least five spells: area fire damage with burn, area slow, single
   heavy magic strike, village heal, global stun. Each MUST have a mana cost, a cooldown, an
   unlocking church stage, and at least three levels bought in the library.
@@ -376,9 +377,11 @@ mission against the tests.
 
 **Learning**
 
-- **FR-022**: The workshop MUST offer at least 24 missions in at least five tracks that can be
-  worked in any order across tracks: the grid; towers; the horde; village and magic; the workshop
-  craft. The topics MUST include nested lists, tuples as coordinates, sets, queues and
+- **FR-022**: The workshop MUST offer at least 24 missions in at least five tracks: the grid;
+  towers; the horde; village and magic; the workshop craft. Tracks can be started in any order.
+  Where a mission builds on missions of another track (the spell book on effects and chain
+  lightning, the bot on routing and towers), the mission registry names these prerequisites, the
+  mission board and the test runner say so, and the game labels the capability as waiting for them. The topics MUST include nested lists, tuples as coordinates, sets, queues and
   breadth-first search, functions as values and sorting keys, composition, class hierarchies with
   overriding, exceptions, recursion, dictionary processing, refactoring, writing tests, debugging
   from tracebacks, JSON data, and simple statistics.
@@ -453,15 +456,18 @@ mission against the tests.
 
 - **SC-001**: With an untouched workshop, the game starts and three waves can be played without
   any error panel; verified automatically without a window.
-- **SC-002**: For each capability, solving only that capability removes exactly its stand-in label
-  and changes behaviour as its mission describes; verified automatically per capability.
-- **SC-003**: The reference passes all mission tests; the untouched workshop fails every mission's
-  tests with the "still open" result and no other error.
+- **SC-002**: For each capability, solving only that capability (together with the prerequisite
+  capabilities its missions name) removes exactly those stand-in labels, and a match plays without
+  error in every such combination; verified automatically per capability.
+- **SC-003**: The reference passes all mission tests. In the untouched workshop, missions 1–20 and
+  24–26 report "still open" and no other error; the craft missions 21–23 report their shipped
+  state (21: wrong results or ordinary errors; 22: behaviour passes, tidiness fails; 23: the
+  checker names surviving faulty variants).
 - **SC-004**: With 200 enemies and 50 towers, one simulation step takes on average no more than
   4 ms and drawing one frame no more than 8 ms on the owner's computer, measured without a window.
-- **SC-005**: A scripted bot wins the campaign on the easy and normal levels on the default map;
-  the same bot using only one tower kind and no village loses on normal; an empty defence loses
-  on every level before wave 5.
+- **SC-005**: A scripted reference bot wins the campaign on the easy and normal levels on the
+  default map; a one-sided bot (arrow towers only, no village, no magic) loses on normal; an empty
+  defence loses on every level before wave 5.
 - **SC-006**: A campaign match simulated without a window runs at least 20 times faster than
   real time.
 - **SC-007**: The same seed and actions produce an identical final state in two runs, and with
@@ -471,7 +477,7 @@ mission against the tests.
 - **SC-009**: Every mission document names only commands, files, functions and keys that exist;
   verified automatically.
 - **SC-010**: A newcomer following the start page reaches a running game and a first test result
-  with three commands after cloning.
+  with three commands after cloning: install, start the game, test mission 1.
 
 ## Assumptions
 

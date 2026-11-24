@@ -19,7 +19,9 @@ engine code rely on exactly these. Rules listed here are the behaviour the missi
 - Enemies passed to workshop functions are duck-typed objects with at least: `leben`, `max_leben`,
   `x`, `y`, `rest_weg` (float, remaining distance to the village gate; smaller is further ahead),
   `effekte` (list), `fliegt` (bool), `ist_boss` (bool), and the methods
-  `erleide_schaden(menge, art)` and `heile(menge)`. Tests use a small stand-alone test double with
+  `erleide_schaden(menge, art)` and `heile(menge)`. `erleide_schaden` takes the raw amount: the
+  enemy itself applies its resistances (through mission 11's function) and never goes below 0
+  life. Workshop code never multiplies by a resistance itself, except in mission 11. Tests use a small stand-alone test double with
   exactly these members; the engine's `Gegner` has them too.
 - "Living" means `leben > 0`. Distances are Euclidean on `(x, y)`; "within r" means `<= r`.
 - Unless stated, functions do not modify their arguments and ties keep the earlier list element.
@@ -77,7 +79,8 @@ Rules:
 - `STRATEGIEN` maps the names `"erster"`, `"letzter"`, `"staerkster"`, `"schwaechster"`,
   `"naechster"` to those functions. In `werkstatt/` the dictionary ships with these five keys
   bound to the unsolved functions.
-- Mission 8 is solved when `STRATEGIEN` has at least one more key whose function follows the
+- Mission 8's test reports "still open" (it raises `NochOffen` itself) while `STRATEGIEN` has only
+  the five standard keys. It is solved when `STRATEGIEN` has at least one more key whose function follows the
   strategy contract on the test's candidate lists (returns a candidate, or `None` for an empty
   list) and differs from each of the five standard strategies on at least one of them. The
   reference adds `"gefaehrlichster"`: among the candidates within the smallest 25 % of `rest_weg`
@@ -141,7 +144,7 @@ Rules:
 
 | M | Name | Signature |
 | --- | --- | --- |
-| 16 | Was fehlt noch? | `dorf.fehlende_voraussetzungen(braucht: dict, stufen: dict, bewohner: int) -> list[str]` |
+| 16 | Was fehlt noch? | `dorf.fehlende_voraussetzungen(braucht: dict, stufen: dict) -> list[str]` |
 | 17 | Die Kraft des Dorfes | `dorf.sammle_boni(stufen: dict, katalog: dict) -> dict` |
 | 18 | Der Bauplan | `dorf.bauplan(gebaeude: str, stufe: int, stufen: dict, katalog: dict) -> list[tuple[str, int]]` |
 | 19 | Mana und Abklingzeit | class `magie.Zauber` |
@@ -150,20 +153,25 @@ Rules:
 Data shape: `katalog` (the engine passes `daten.DORFGEBAEUDE`) maps a building key to
 `{"name": str, "stufen": [stufe_1, stufe_2, ...]}`; each `stufe_n` is
 `{"name": str, "kosten": dict, "braucht": dict, "boni": dict}`. `braucht` maps a building key to
-the minimum level, and may contain the special key `"bewohner"` with a minimum population.
-`stufen` maps building keys to the current level; a missing key means level 0.
+the minimum level (population is expressed through the level of `haeuser`; there is no other
+kind of requirement). `stufen` maps building keys to the current level; a missing key means level 0.
 
 Rules:
 
-- `fehlende_voraussetzungen`: one text per unmet entry of `braucht`, in the order of sorted keys.
-  For a building: `"<key> Stufe <n>"`; for population: `"<n> Bewohner"`. Empty list if all are met.
+- `fehlende_voraussetzungen`: one text `"<key> Stufe <n>"` per unmet entry of `braucht`, in the
+  order of sorted keys. Empty list if all are met.
 - `sammle_boni`: adds up, over every building in `stufen` and every level from 1 to its current
   level, all entries of that level's `boni`. Returns a new dictionary bonus name → sum. Buildings
   at level 0 and keys missing from `katalog` contribute nothing.
 - `bauplan`: the ordered list of `(gebaeude, stufe)` purchases still needed to reach `stufe` of
-  `gebaeude`, each prerequisite before what needs it, each purchase once, lower levels of a
-  building before higher ones; purchases already covered by `stufen` are left out. The population
-  key is ignored. Recursion is the intended technique. The data has no cycles.
+  `gebaeude`. The order is fixed by this procedure, on a private copy of `stufen`: for each level
+  `n` from the building's current level + 1 up to `stufe`, first, for each key of that level's
+  `braucht` in sorted order whose required level is above the copy's level, insert the plan for
+  that requirement (recursively, by the same procedure); then append `(gebaeude, n)` and record
+  level `n` in the copy. Purchases already covered are therefore left out and nothing appears
+  twice. Example: `a` level 1 needs nothing, `a` level 2 needs `b` 1, `b` 1 needs `c` 1, nothing
+  built: `[("a", 1), ("c", 1), ("b", 1), ("a", 2)]`. Buying the list in order always satisfies
+  mission 16's check at every step. The data has no cycles. `stufen` is not modified.
 - `Zauber.__init__(self, name, kosten, abklingzeit)`: stores them and sets `self.rest = 0.0`.
   `bereit(self, mana) -> bool`: `rest <= 0` and `mana >= kosten`.
   `tick(self, sekunden)`: lowers `rest`, never below 0.
@@ -183,6 +191,9 @@ Rules:
   `punkt` within 120 pixels is the start of a `kettenblitz`; each enemy in the chain takes
   `schaden` of type `"magie"`. Returns `0` if there is no start.
   `Segen(kosten, abklingzeit, heilung)`: calls `dorf.heile(heilung)` and returns what it returns.
+  Mission 20 builds on missions 9, 12 and 13 (`kettenblitz`, the effect classes,
+  `fuege_effekt_hinzu`), which it imports with relative imports. Its tests report "still open"
+  with a pointer to those missions while they are unsolved.
   `Glockenschlag(kosten, abklingzeit, dauer)`: every living enemy with `ist_boss == False` gets
   `Betaeubung(dauer)`.
   `dorf` here is a duck-typed object with `heile(menge) -> int` (life actually restored).
@@ -198,7 +209,8 @@ Rules:
 | 25 | Das Labor | `forschung.auswertung(ergebnisse: list[dict]) -> dict` |
 | 26 | Der Bot | `forschung.mein_bot(sicht: dict) -> list[dict]` |
 
-Missions 21–23 do not raise `NochOffen`; they ship in a deliberately faulty or untidy state.
+Missions 21–23 do not raise `NochOffen`; they ship in a deliberately faulty or untidy state
+  (the constitution's stated exception).
 
 - **21** `fehlerjagd.py` ships three functions, each with one fault, each fault a classic:
   `leeres_raster(breite, hoehe, zeichen=".")` (must return independent rows; ships with aliased
@@ -206,13 +218,22 @@ Missions 21–23 do not raise `NochOffen`; they ship in a deliberately faulty or
   list unchanged; ships removing from the list while iterating over it),
   `zaehle_arten(arten, zaehler=None)` (must return a fresh count per call; ships with a mutable
   default argument). The reference file contains the fixed functions.
-- **22** `aufraeumen.py` ships a working module of about 60 lines computing tower statistics with
-  the distance formula written out three times, booleans returned through paired `if` statements
-  and unexplained numbers. Behaviour tests pass as shipped and must keep passing. Tidiness checks
-  (via `ast`): a function `abstand(a, b)` exists; `hypot` or the written-out formula occurs in
-  exactly one function; no function returns `True`/`False` literals from an `if`/`else` pair; the
-  module defines the named constants `REICHWEITE_GRUND` and `BONUS_HUEGEL`; no function is longer
-  than 15 statements.
+- **22** `aufraeumen.py` ships a working but untidy module. A tower is a dictionary
+  `{"x", "y", "auf_huegel"}`, an enemy a dictionary `{"x", "y"}`. Public functions, whose
+  behaviour must not change: `turm_trifft(turm, gegner) -> bool` (distance at most the tower's
+  range, which is 120, times 1.25 on a hill); `anzahl_in_reichweite(turm, gegner_liste) -> int`;
+  `naechster_gegner(turm, gegner_liste)` (the nearest enemy, the earlier on a tie, `None` for an
+  empty list, range does not matter); `ist_ueberlastet(turm, gegner_liste) -> bool` (more than
+  five enemies in range). As shipped, the distance is computed with `hypot` in three functions,
+  booleans are returned through `if`/`else` pairs, and 120, 1.25 and 5 appear as bare numbers.
+  Behaviour tests pass as shipped and must keep passing. Tidiness checks, done on the syntax tree
+  by `rudersdorf.uebung.aufraeum_pruefung.pruefe(quelltext) -> list[str]` (German texts of the
+  unmet checks, empty when tidy): (a) a function `abstand(a, b)` exists; (b) a call of `hypot` or
+  `sqrt`, or a power with exponent `0.5`, occurs inside exactly one function; (c) no `if`
+  statement has `return True` in one branch and `return False` in the other as their only
+  statements; (d) module-level names `REICHWEITE_GRUND`, `BONUS_HUEGEL` and `MAX_GEGNER` are
+  assigned, and the numbers 120, 1.25 and 5 occur nowhere else in the module; (e) no function has
+  more than 15 statement nodes in its body, counted recursively.
 - **23** The subject is `rudersdorf.uebung.schatzkammer.Schatzkammer` with the documented rules:
   `__init__(self, gold=0)`; `einzahlen(menge)` adds a positive amount and raises `ValueError`
   otherwise; `auszahlen(menge)` removes a positive amount not above the balance, returns it, and
@@ -222,10 +243,13 @@ Missions 21–23 do not raise `NochOffen`; they ship in a deliberately faulty or
   (`rudersdorf.uebung.pruefer.pruefe_tests(testklasse) -> dict`) runs the learner's tests against
   the correct class and at least four faulty variants (accepts negative deposits; allows
   overdrawing; changes the balance before raising; no cap on interest). Solved when the tests pass
-  on the correct class and at least one test fails on every variant. The tests reach the subject
-  only through `self.neue_kammer(gold)`, provided by the shipped base class.
+  on the correct class and at least one test fails on every variant. The learner's class
+  `MeineTests` extends `rudersdorf.uebung.pruefer.KammerTest` (a `unittest.TestCase`) and reaches
+  the subject only through `self.neue_kammer(gold=0)`. `pruefe_tests` returns
+  `{"korrekt_bestanden": bool, "fehler_auf_korrekt": [test names], "varianten": {variant name:
+  caught (bool)}, "geloest": bool}`.
 - **24** `zustand` is a dictionary with the keys `karte` (str), `schwierigkeit` (str), `saat`
-  (int), `welle` (int), `vorraete` (dict str → number), `dorf_leben` (int), `dorf_stufen` (dict),
+  (int), `welle` (int), `endlos` (bool), `vorraete` (dict str → number), `dorf_leben` (int), `dorf_stufen` (dict),
   `zauber_stufen` (dict), `bauwerke` (dict cell → `{"art", "stufe", "meister", "strategie",
   "ausgegeben"}`). `zu_daten` returns a JSON-compatible dictionary with `"version": 2`, the plain
   entries copied, and `bauwerke` as a list of dictionaries with `"spalte"`, `"zeile"` and the five
@@ -239,12 +263,20 @@ Missions 21–23 do not raise `NochOffen`; they ship in a deliberately faulty or
   all numbers are `0` and `nach_schwierigkeit` is `{}`.
 - **26** `sicht` is the dictionary described in `data-model.md` (*Bot view*). `mein_bot` returns a
   list of action dictionaries (*Bot actions*). Solved when the bot survives five waves on the
-  laboratory map at the easy level for three fixed seeds.
+  laboratory map at the easy level for three fixed seeds. The test plays with the package under
+  test for everything (the learner's own workshop, stand-ins included, or the reference when the
+  reference is selected); it never mixes in the reference. The registry therefore names missions
+  3, 4, 5, 6 and 7 as prerequisites of mission 26, and the mission document gives a starting
+  skeleton for the bot.
 
 ## Capabilities and stand-ins
 
 The engine uses workshop code only through capabilities. A capability is *open* when any of its
-functions raises `NochOffen`; then its stand-in (`rudersdorf/ersatz.py`) is used and labelled.
+functions raises `NochOffen`, or when a module or name it needs is missing; then its stand-in
+(`rudersdorf/ersatz.py`) is used and labelled. A capability whose missions name prerequisites is
+also treated as open (label: "wartet auf Mission …") while a prerequisite capability is open:
+`magie` waits for `effekte` and `kettenblitz`; `bauregel` waits for `wegfindung`; `bot` waits for
+`wegfindung`, `bauregel`, `reichweite` and `strategien`.
 
 | Capability | Missions | Stand-in (visibly weaker, never the real rule) |
 | --- | --- | --- |

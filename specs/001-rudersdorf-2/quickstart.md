@@ -23,8 +23,8 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy RUDERSDORF_LOESUNG=1 \
 ```sh
 python -m pip install pygame-ce
 python spielen.py       # runs at once, with stand-ins for every open mission
+python pruefen.py 1     # test mission 1: the first test result
 python pruefen.py       # mission board and suggested next mission
-python pruefen.py 3     # test mission 3
 ```
 
 In the game: `F5` reloads the workshop after a change, `Tab` shows the mission board, `F1` shows

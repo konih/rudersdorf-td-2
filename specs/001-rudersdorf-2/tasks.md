@@ -17,6 +17,14 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   test through `tests/missionen/helfer.py` (`werkstatt`, or `loesung` when `RUDERSDORF_LOESUNG=1`),
   and give German failure messages that state expectation, actual result and one hint.
 - Everything a learner reads is German. Reference code uses only what the missions teach.
+- "Known red" means the tests listed in `specs/001-rudersdorf-2/loop.md`, section *Known red*.
+  A test task adds its tests there; the implementation task that turns them green removes them.
+  `make check` counts as green when its only failures are tests on that list.
+- "Tests first inside this task" (presentation tasks): write the tests, run them, and record each
+  red with its failure line in the evidence before implementing, as close-task's IMPLEMENT step
+  requires. These tasks close green.
+- Tests that need the untouched workshop use the repository's `werkstatt/` as shipped; the
+  developer test suite is defined on the shipped state.
 
 ## Phase 1: Setup
 
@@ -38,13 +46,14 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   `wellen_leben_faktor(n)`, `spawn_abstand(n)`, `SCHWIERIGKEIT`, `DORFGEBAEUDE` with all eight lines
   and every level's `kosten`, `braucht`, `boni`, `ZAUBER`). Five map files under `karten/` obeying
   the map rules. `tests/kern/test_daten.py` checks: required keys of every entry; every
-  `braucht` key is a building or `bewohner` and its level exists; requirements contain no cycle;
+  `braucht` key is a village building and its level exists; requirements contain no cycle;
   every ability class name and spell class name is one from the contract; every `teilt_in` kind
   exists; price and `ab_welle` are positive for generated kinds; each map file is 16 × 24, uses
   only known characters, has one `Z`, at least one `S`, and `D` exactly in columns 18–23;
   `zwei_tore` has two `S`. Verify: `make check`.
 - [ ] T003 Create the mission registry, the unsolved workshop and its guards.
-  `rudersdorf/missionen.py` with all 26 entries (data-model.md, *Mission registry*). Stub modules
+  `rudersdorf/missionen.py` with all 26 entries (data-model.md, *Mission registry*), including
+  `braucht` (mission 5: [3]; mission 20: [9, 12, 13]; mission 26: [3, 4, 5, 6, 7]; else empty). Stub modules
   for missions 1–20 and 24–26 in `werkstatt/` and `loesung/` with exactly the contract's names and
   signatures: in `werkstatt/` every body is a German docstring plus `raise NochOffen("Mission N: <Titel>")`,
   in `loesung/` a docstring plus `raise NotImplementedError`. `werkstatt/strategien.py` and
@@ -66,6 +75,9 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   temporary packages created in a temp directory (not `werkstatt` or `loesung`). Add
   `rudersdorf/werkbank.py` and `rudersdorf/ersatz.py` as stubs with the plan's signatures; the
   constructor is `Werkbank(paket, gesperrt=())`, where `gesperrt` names capabilities forced open.
+  The temporary packages use the real module and function names of the capabilities they
+  exercise (`horde.berechne_schaden` for a one-function capability, the four functions of
+  `raster.py` for `wegfindung`, the effect classes for a class capability).
   Cases, each as given / when / then, with the failure it exposes:
   - given a function that returns a value / when `rufe` / then that value is returned (exposes: routing to the wrong module or name)
   - given a function raising `NochOffen` / when `rufe` / then the registered stand-in's result is returned and `ist_offen` is true (exposes: open missions crash the game)
@@ -76,11 +88,15 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - given a module edited on disk / when `lade_neu` / then the new behaviour is used and openness is probed again (exposes: reload keeps stale code)
   - given an edit with a syntax error / when `lade_neu` / then `Lernfehler` is raised and the previous code still answers (exposes: a typo kills the running game)
   - given a class with a method raising `NochOffen` / when created through `erzeuge` and the method is called / then the stand-in class's method answers (exposes: classes bypass the stand-in rule)
+  - given a package without the module or name a capability needs / then that capability is open (exposes: import errors at start-up for a half-filled workshop)
+  - given a capability whose prerequisite capability is open (`magie` with `effekte` forced open) / then it is open too and `wartet_auf` names the prerequisite's missions; with the prerequisite solved it is not (exposes: solved missions failing on another track's open code)
+  - given a probe that raises `ZeroDivisionError` / then the capability counts as solved and no exception leaves the constructor (exposes: a learner bug preventing the game from starting)
+  - given a function raising an error / then the `Lernfehler` has a `spur` text containing the original traceback's last line (exposes: lost tracebacks)
   - given `RUDERSDORF_LOESUNG` unset, `"0"`, `"1"` / when `waehle_paket(None)` / then `"werkstatt"`, `"werkstatt"`, `"loesung"`; and `waehle_paket(True)` is `"loesung"` (exposes: the reference loaded silently)
   Verify: the new tests fail for these reasons; `make lint` is green.
 - [ ] T005 Implement `rudersdorf/werkbank.py` (registry `FAEHIGKEITEN` built from
   `rudersdorf/missionen.py`, loading, probing, `rufe`, `erzeuge`, `strategien`, `lade_neu`,
-  `waehle_paket`) and the stand-in registry mechanism in `rudersdorf/ersatz.py` (a dictionary
+  `wartet_auf`, `PROBEN`, `ABHAENGIG`, `waehle_paket`) and the stand-in registry mechanism in `rudersdorf/ersatz.py` (a dictionary
   capability → name → callable or class; the stand-ins themselves arrive with their stories).
   Turn T004's tests green without changing them. Verify: `make check`.
 
@@ -114,7 +130,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   and `tests/kern/test_ersatz_b.py`. Cases from the contract's rules for missions 6–10, at least:
   - M6 given enemies inside, exactly on, and outside the range, and a defeated one inside / then the living ones within range in original order, a new list (exposes: `<` instead of `<=`, shooting the dead)
   - M7 given candidates with distinct `rest_weg`, `leben` and positions / then each of the five strategies picks the stated one; ties keep the earlier; empty list gives `None`; `STRATEGIEN` has the five names bound to these functions (exposes: min/max mix-ups, crashes on empty lists)
-  - M8 given `STRATEGIEN` / then it has a sixth entry that returns a candidate for each test list, `None` for the empty list, and differs from each standard strategy on at least one test list (exposes: a copy of a standard strategy)
+  - M8 given `STRATEGIEN` with only the five standard keys / then the test raises `NochOffen` ("still open"); given a sixth entry / then it returns a candidate for each test list, `None` for the empty list, and differs from each standard strategy on at least one test list (exposes: a copy of a standard strategy)
   - M9 given a row of enemies 50 apart and `sprungweite` 60 / then the chain follows the row up to `spruenge` jumps; a gap larger than `sprungweite` ends it; nobody is hit twice; defeated enemies are skipped; `spruenge` 0 gives `[start]` (exposes: jumping back and forth, measuring from the start instead of the last)
   - M10 given values and an upgrade with `+`, `*` and `=` / then a new dictionary with the changes and the original untouched; `=` on a new key adds it; an unknown sign, or `+`/`*` on a missing key / then `ValueError` (exposes: mutating the tower's base values)
   - stand-ins: `reichweite` sees an enemy in the tower's row within range and not a diagonal one inside the circle; `strategien` returns some candidate and offers only `zufall`; `kettenblitz` returns `[start]`; `ausbau` reports that upgrades are unavailable
@@ -145,6 +161,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - given a wall with one gap / when `baue` in the gap / then false with the "need a way" message; given an enemy on or heading into a cell / then false (exposes: enclosing, building on enemies)
   - given a tower on a hill / then its range is 1.25 times the base (exposes: terrain bonus missing)
   - given a built tower / when `verkaufe` / then gold rises by the selling share of `ausgegeben` rounded down, the cell is free and routes are recomputed; on an empty cell false (exposes: selling without re-routing)
+  - given an enemy with a resistance 0.4 against `stich` / when `erleide_schaden(20, "stich")` / then it loses 8 life, the call returns 8, and life never goes below 0 (exposes: resistances applied twice or not at all)
   - given a reached village gate / then the village loses the enemy's `dorfschaden`, a `durchbruch` event exists, the enemy is gone and pays nothing (exposes: reward for breaches)
   Verify: new tests fail for these reasons (not for import errors); `make lint` green.
 - [ ] T013 [US1] Implement `rudersdorf/kern/karte.py` (`Karte`, `pruefe_karte`, loading by name
@@ -162,26 +179,28 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - given a defeated enemy / then its reward is added once, a `tod` event exists, it leaves the list (exposes: double rewards)
   - given poison on an enemy / then it loses life over time and can die from it, paying its reward (exposes: effects not ticking, kills by effects unpaid)
   - given `starte_welle` in the build phase / then the phase is `welle`, the wave number rises, enemies of the previewed kinds spawn at the spawn interval; a second call during the wave returns false (exposes: overlapping waves)
-  - given the last enemy gone / then the phase returns to `bauen`, wave income is paid (gold, stone, interest capped), a `welle_ende` event exists, and `vorschau()` describes the next wave (exposes: missing income, stale preview)
+  - given the last enemy gone / then the phase returns to `bauen`, the base wave income is paid (gold and stone), a `welle_ende` event exists, and `vorschau()` describes the next wave (exposes: missing income, stale preview)
   - given the last campaign wave cleared / then `sieg`; given village life 0 / then `verloren`; afterwards `schritt` and actions change nothing (exposes: playing on after the end)
   - given the same seed and the same scripted actions / when run twice, and once in steps of `DT` split differently across calls of the caller / then identical `zustand_hash()` (exposes: hidden randomness, wall-clock use)
-  - given `fuehre_aus` with each action kind and with malformed actions / then the corresponding method's result, and false without change for nonsense (exposes: bots crashing the match)
+  - given `fuehre_aus` with the actions `baue`, `ausbau`, `verkaufe`, `strategie`, `welle` and with malformed actions / then the corresponding method's result, and false without change for nonsense (exposes: bots crashing the match)
+  - given a workshop with a sixth registered strategy / then `setze_strategie` accepts its name and the tower uses it (exposes: learner strategies not reaching the game)
+  - given a finished match / then `statistik()` reports the wave reached, the enemies defeated and the gold earned from kills and income (exposes: empty end screens)
   Verify: new tests fail for these reasons; `make lint` green.
 - [ ] T015 [US1] Implement shooting in `bauwerk.py`, `rudersdorf/kern/wellen.py`, and the rest of
   `spiel.py`: the fixed step order of plan.md, effects and abilities through the workbench,
   rewards, wave lifecycle, income, victory and defeat, `vorschau`, `sicht`, `fuehre_aus`,
   `zustand_hash`. Special enemy behaviour (flying over the labyrinth, splitting, breaking, boss
-  waves) belongs to T032; until then such kinds behave like ordinary walkers. Turn T014's tests
+  rules) belongs to T031 and boss waves to T032; until then such kinds behave like ordinary walkers. Turn T014's tests
   green. Verify: `make check` (known red excepted).
 - [ ] T016 [US1] Write the presentation tests in `tests/ansicht/test_anwendung.py` and
   `tests/lernen/test_spielen.py`, with stubs for `rudersdorf/ansicht/fenster.py` (plan signatures)
   and `spielen.py`. All run on an off-screen surface with the dummy video driver. Cases, at least:
   - given an `Anwendung` in a match / when `zeichne` is called in each phase (build, wave, victory, defeat, paused) / then no exception and the surface is not uniformly one colour (exposes: drawing code that only works with a window)
   - given a chosen building and a mouse click at the pixel of a free cell, with the window scaled to another size / then that cell holds the building (exposes: wrong pixel-to-cell conversion under scaling)
-  - given key events for start wave, pause, speed, cancel, upgrade, sell, next rule / then the match state changes accordingly (exposes: dead keys)
-  - given speed 4 / when `aktualisiere(0.1)` / then the simulated time advanced by about 0.4 s in whole steps of `DT`, never more than 12 steps per call (exposes: frame-rate dependent simulation, spiral of death)
+  - given key events for start wave (`N`, and space in the build phase), pause (`P`, and space during a wave), speed, cancel, upgrade, sell, next rule / then the match state changes accordingly; `N` during a wave changes nothing (exposes: dead keys, overlapping waves)
+  - given speed 4 / when `aktualisiere(0.05)` / then exactly 12 steps of `DT` ran (0.2 s simulated); given speed 1 / when `aktualisiere(0.05)` / then 3 steps; given `aktualisiere(1.0)` / then 12 steps and the rest of the backlog is discarded, so a following `aktualisiere(0.0)` runs none (exposes: frame-rate dependent simulation, spiral of death)
   - given a focus-lost event / then the match is paused (exposes: playing on in the background)
-  - given `spielen.py --hilfe`-style argument parsing / then `--loesung`, `--karte`, `--schwierigkeit`, `--saat` are accepted, unknown maps and levels are refused with a German message, and without `--loesung` the package is `werkstatt` (exposes: the reference loaded silently)
+  - given `spielen.main(argv)` / then `--loesung`, `--karte`, `--schwierigkeit`, `--saat`, `--probelauf` are accepted, `--probelauf 1` returns 0 after about one simulated second without opening a real window under the dummy driver, unknown maps and levels are refused with a German message, and without `--loesung` the package is `werkstatt` (exposes: the reference loaded silently)
   Verify: new tests fail for these reasons; `make lint` green.
 
 ### Implementation for User Story 1
@@ -191,8 +210,8 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   `figuren.py` (a cached sprite per tower kind and enemy kind), `hud.py` (top bar with resources,
   village life and wave; side panel with the building buttons, prices, the selected tower's
   values, targeting rule, upgrade and sell; the next-wave preview; the message line) and
-  `spielen.py`. Turn T016's tests green. Verify: `make check`; then run
-  `uv run python spielen.py --loesung` under the dummy driver for five seconds without an error.
+  `spielen.py`. Turn T016's tests green. Verify: `make check`; then
+  `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy uv run python spielen.py --loesung --probelauf 5` exits 0.
 
 **Checkpoint**: the reference is playable from start to victory or defeat.
 
@@ -214,21 +233,23 @@ test runner and the mission board guide the learner
   - given a temporary package whose mission 2 is wrong / then exit 1 and each failing test shows expectation, actual result and one hint (exposes: bare assertion dumps)
   - given a temporary package whose mission 2 raises `TypeError` / then the error type, message, file and line are shown (exposes: hidden learner errors)
   - given `--spur A`, `--alle` and a number together / then a usage error; each alone selects the right missions (exposes: wrong selection)
-  - given no arguments / then the mission board: every mission by track with title, stars and one of solved / begun / open, and a suggested next mission that is open and has the fewest stars within the first unfinished track (exposes: no guidance)
+  - given no arguments / then the mission board: every mission by track with title, stars and one of solved / begun / open, and a suggested next mission that is open, has all its `braucht` missions solved, and has the fewest stars within the first unfinished track; a mission with unsolved prerequisites is shown with "braucht Mission …" (exposes: no guidance, suggesting a mission that cannot work yet)
+  - given mission 20 selected while mission 12 is open in the package / then the output says first which missions it builds on (exposes: confusing "still open" from another file)
   - given any run / then `.fortschritt.json` holds the state of every mission run, merged with earlier states, written to the directory passed for tests (exposes: board and game out of date)
   - given `--loesung` absent and `RUDERSDORF_LOESUNG=1` in the environment / then the workshop is still tested (exposes: the reference used by accident)
   Verify: new tests fail for these reasons; `make lint` green.
 - [ ] T020 [US2] Write `tests/kern/test_ersatz_spiel.py` and `tests/ansicht/test_lernhilfen.py`.
   Cases (FR-023–FR-026, FR-030, SC-001, SC-002), at least:
-  - given `Werkbank("werkstatt")` / when a match is played for three waves with a simple scripted defence at `LABOR_DT` / then no exception, and `offene()` lists every capability of tracks A–C (exposes: the untouched workshop crashing)
-  - given `Werkbank("loesung", gesperrt=(k,))` for each capability `k` of tracks A–C in turn / then three waves play without exception and exactly `k` is open (exposes: stand-ins that only work together)
+  - given `Werkbank("werkstatt")` / when a match is played for three waves with a simple scripted defence at `LABOR_DT` / then no exception, and `offene()` lists every capability that exists at this point (exposes: the untouched workshop crashing)
+  - given `Werkbank("loesung", gesperrt=(k,))` for each capability `k` of tracks A–C in turn / then three waves play without exception and the open set is exactly `k` plus the capabilities waiting for it (exposes: stand-ins that only work together)
+  - given `Werkbank("loesung", gesperrt=all capabilities of tracks A–C except k and its prerequisites)` for each `k` in turn / then three waves play without exception and `k` is not open (exposes: a solved mission that only works when others are solved, SC-002)
   - given the `wegfindung` stand-in / then an enemy walks through a tower cell; given it solved / then it does not (exposes: a stand-in that is secretly the real rule)
-  - given a temporary workshop whose strategy returns an object that is not a candidate, and one whose `in_reichweite` raises `NameError` / when the match steps / then `Lernfehler` reaches the caller with file, line and mission (exposes: silent misbehaviour)
-  - given an `Anwendung` and a `Lernfehler` during `aktualisiere` / then the match is paused and the drawn panel's text contains file name, line, error type and mission title (exposes: crash to desktop)
-  - given an `Anwendung` on an untouched workshop / then the HUD's label list names each open capability with mission number and title (exposes: unlabelled stand-ins)
+  - given a temporary workshop whose strategy returns an object that is not a candidate, and one whose `in_reichweite` raises `NameError` / when the match steps / then `Lernfehler` reaches the caller with file, line and mission; for the wrong return value the line is the function's first line and the type is "Rückgabewert" (exposes: silent misbehaviour)
+  - given an `Anwendung` and a `Lernfehler` during `aktualisiere` / then the match is paused, the drawn panel's text contains file name, line, error type and mission title, and the original traceback was written to standard error (captured in the test) (exposes: crash to desktop, lost traceback)
+  - given an `Anwendung` on an untouched workshop / then the HUD's label list names each open capability with mission number and title, and a waiting capability with the missions it waits for (exposes: unlabelled stand-ins)
   - given the reload key and a temporary workshop changed on disk / then a new match on the same map and difficulty runs the new code; with a syntax error the panel shows and the old code stays (exposes: restart needed, crash on typo)
   - given the mission-board key and a `.fortschritt.json` / then the board scene lists the missions with those states (exposes: board ignoring test results)
-  - given the overlay keys / then distances are drawn from `Spiel.abstaende()`, ranges for every tower, and the frame-rate text; each toggles off again (exposes: overlays showing reference data instead of the active code's)
+  - given the overlay keys / then distances are drawn from `Spiel.abstaende()`, ranges for every tower, and the frame rate with the mean simulation time per step; each toggles off again (exposes: overlays showing reference data instead of the active code's)
   Verify: new tests fail for these reasons; `make lint` green.
 
 ### Implementation for User Story 2
@@ -240,8 +261,8 @@ test runner and the mission board guide the learner
 - [ ] T021 [US2] Implement the learning aids in the presentation: stand-in labels in `hud.py`,
   the error panel and the three overlays in `rudersdorf/ansicht/overlays.py`, the mission-board
   scene in `szenen.py`, the reload key in `fenster.py`. Turn T020's tests green.
-  Verify: `make check` (known red excepted); `uv run python spielen.py` (untouched workshop) runs
-  five seconds under the dummy driver without an error.
+  Verify: `make check` (known red excepted); `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy uv run python spielen.py --probelauf 5`
+  (untouched workshop) exits 0.
 
 **Checkpoint**: a learner can start, play, test and reload.
 
@@ -257,15 +278,17 @@ test runner and the mission board guide the learner
 
 - [ ] T022 [US3] Write `tests/missionen/test_m16.py` … `test_m18.py`, `tests/kern/test_ersatz_d.py`
   (village part) and `tests/kern/test_dorf.py`. Cases (contract missions 16–18, FR-015–FR-019), at least:
-  - M16 given requirements all met / then `[]`; given two unmet buildings and unmet population / then three German texts in sorted-key order; a missing key in `stufen` counts as level 0 (exposes: `KeyError`, wrong order)
+  - M16 given requirements all met / then `[]`; given three requirements of which two are unmet / then two texts `"<key> Stufe <n>"` in sorted-key order; a missing key in `stufen` counts as level 0 (exposes: `KeyError`, wrong order)
   - M17 given a small catalogue and levels / then the sum over all bought levels of all buildings; level 0 and unknown keys add nothing; a new dictionary each call (exposes: counting only the top level, mutation)
-  - M18 given a chain A2 needs B1, B1 needs C1 / then `[("c",1),("b",1),("a",1),("a",2)]`; purchases already owned are left out; a shared prerequisite appears once; a building needing nothing at level 1 gives `[(g,1)]`; the real `DORFGEBAEUDE` yields a plan for `kirche` level 5 in which every entry's requirements appear earlier (exposes: duplicates, wrong order, endless recursion)
+  - M18 given the contract's example (a2 needs b1, b1 needs c1, nothing built) / then exactly `[("a",1),("c",1),("b",1),("a",2)]`; purchases already owned are left out; a prerequisite shared by two requirements appears once; a building needing nothing at level 1 gives `[(g,1)]`; `stufen` is unchanged; for the real `DORFGEBAEUDE` and every building and level, buying the plan in order passes mission 16's check at every step and ends at the target (exposes: duplicates, wrong order, endless recursion, plans that cannot be executed)
   - stand-ins: `voraussetzungen` allows level 1 only; `boni` counts first levels only; `bauplan` yields `None`
   - given enough resources and met requirements / when `dorf_ausbau` in the build phase / then true, cost paid, level raised, `dorf_ausbau` event; during a wave, with too little, with unmet requirements, at the top level, or for an unknown key / then false and nothing paid (exposes: buying during waves, skipping requirements)
   - given each bonus name of data-model.md / then its effect is measurable: tower damage, gold and stone per wave, interest, selling share, population, village life (raising current life by the same amount), armour (each breach reduced, at least 1), price discount in `preis()` for grid and village, `schmiede_stufe` gating master upgrades (exposes: bonuses bought but not applied)
   - given a church at stage 1 and a wounded village / when a wave ends / then life rises by `heilung_pro_welle` up to the maximum; during a wave mana rises by `mana_pro_sekunde` per second up to `mana_max`; without a church mana stays 0 (exposes: healing above maximum, mana in the build phase)
   - given a church at stage 4 / when `glocken_intervall` seconds of wave time pass / then every non-boss enemy has a stun, a `glocken` event exists, and it repeats one interval later (exposes: bells ringing once or stunning bosses)
   - given `dorf_info` for a locked level / then `fehlend` and `bauplan` as the workshop functions return them (exposes: panel without guidance)
+  - given a market with interest / when a wave ends / then interest is `zinsen_prozent` of the gold, at most `zinsen_max` (exposes: uncapped interest)
+  - given `fuehre_aus({"aktion": "dorf", "gebaeude": k})` / then the result of `dorf_ausbau(k)` (exposes: bots unable to build the village)
   Verify: new tests fail for these reasons; `make lint` green.
 
 ### Implementation for User Story 3
@@ -304,7 +327,7 @@ test runner and the mission board guide the learner
   `tests/kern/test_ersatz_d.py`, and `tests/kern/test_zauberei.py`, with a stub for
   `rudersdorf/kern/zauberei.py`. Cases (contract missions 19–20, FR-020), at least:
   - M19 given a spell with cost 30 and cooldown 10 / then `bereit` is false with 29 mana, true with 30; `zaubere` on a base `Zauber` raises `NotImplementedError` from `wirke` only when ready; with a test subclass, `zaubere` returns mana minus cost, sets `rest` to the cooldown and stores `letzte_wirkung`; when not ready it returns mana unchanged and does not call `wirke`; `tick` lowers `rest` to at most 0 (exposes: paying without casting, casting during cooldown)
-  - M20 given enemies inside and outside the radius / then `Feuerball` damages those inside with type `feuer` and adds `Brand` only when `brand_dauer > 0`; `Eissturm` adds `Frost` inside only; `Blitzschlag` starts at the enemy nearest the point within 120 pixels, follows the chain, returns 0 without a start; `Segen` returns what `dorf.heile` returns; `Glockenschlag` stuns all living non-boss enemies; each returns the number affected; each is a subclass of `Zauber` with its fixed name (exposes: hitting the defeated, stunning bosses, wrong counts)
+  - M20 given enemies inside and outside the radius / then `Feuerball` damages those inside with type `feuer` and adds `Brand` only when `brand_dauer > 0`; `Eissturm` adds `Frost` inside only; `Blitzschlag` starts at the enemy nearest the point within 120 pixels, follows the chain, returns 0 without a start; `Segen` returns what `dorf.heile` returns; `Glockenschlag` stuns all living non-boss enemies; each returns the number affected; each is a subclass of `Zauber` with its fixed name; while mission 9, 12 or 13 is open in the package under test, mission 20's tests raise `NochOffen` naming those missions (exposes: hitting the defeated, stunning bosses, wrong counts)
   - stand-in: `magie` reports every spell as unavailable and `zaubere` returns false with the mission label in `meldung`
   - given no church / then `zauber_info()` marks every spell locked; given church stages 1 to 4 / then the spells of data-model.md unlock at their stages (exposes: spells without a church)
   - given a wave, enough mana and a ready spell / when `zaubere` / then true, mana reduced, a `zauber` event with the effect count, and a second cast before the cooldown returns false with a reason; in the build phase false (exposes: free or unlimited casting)
@@ -421,7 +444,9 @@ master upgrades, the endless mode, and a campaign that is winnable but hard
   `werkstatt_ersatz.png` (the untouched workshop with labels), `missionstafel.png`.
   Tests: the preview writes every listed file, none uniformly coloured; sprites of different
   kinds and levels differ; each event kind creates its effect; the particle cap holds; drawing
-  the same state twice leaves the match's `zustand_hash()` unchanged (FR-036, FR-038, SC-008).
+  the same state twice leaves the match's `zustand_hash()` unchanged; the same scripted match
+  played through `Anwendung` with a drawn frame after every step and played without any drawing
+  ends with the same `zustand_hash()` (FR-036, FR-037, FR-038, SC-007, SC-008).
   Verify: `make check` (known red excepted); `uv run python -m rudersdorf.ansicht.vorschau docs/bilder`.
 - [ ] T036 [US6] Implement sound, tests first inside this task (`tests/ansicht/test_ton.py`).
   `rudersdorf/ansicht/ton.py` synthesises short tones with the standard library (shot per tower
@@ -462,14 +487,13 @@ master upgrades, the endless mode, and a campaign that is winnable but hard
   - checker: given a test class with only the shipped example test / then the report says which variants survive; given the reference tests / then all are caught; given a test that fails on the correct subject / then that is reported first (exposes: a checker that accepts anything)
   - shipped state: on the untouched workshop, mission 21's tests fail with wrong results or ordinary errors, mission 22's behaviour tests pass and its tidiness checks fail, mission 23 reports surviving variants (exposes: craft missions shipped solved)
   Verify: new tests fail for these reasons; `make lint` green.
-- [ ] T039 [US7] Write `tests/missionen/test_m24.py` … `test_m26.py`, the last part of
-  `tests/kern/test_ersatz_e.py`, `tests/kern/test_speichern.py` and `tests/lernen/test_labor.py`,
+- [ ] T039 [US7] Write `tests/missionen/test_m24.py` … `test_m26.py`, `tests/kern/test_ersatz_e.py`, `tests/kern/test_speichern.py` and `tests/lernen/test_labor.py`,
   with a stub `labor.py` exposing `main(argv) -> int`. Cases (contract missions 24–26, FR-021, FR-032, US7 scenarios 4–6), at least:
   - M24 given a valid state / then `zu_daten` is JSON-serialisable, has version 2 and buildings sorted by row then column, and `aus_daten(zu_daten(z)) == z`; given a non-dictionary, a wrong version, each missing key, a wrong type, a negative number, two buildings on one cell / then `ValueError` with a German text; arguments unchanged (exposes: tuples as JSON keys, silent acceptance)
   - M25 given six results over two levels / then the stated totals, rate, best, mean and per-level blocks; given `[]` / then zeros and `{}` (exposes: division by zero)
-  - M26 given `mein_bot` and seeds 1–3 on the `labor` map at `leicht` / then it survives five waves each time; it returns a list of dictionaries for a view in the build phase and in a wave (exposes: a bot that does nothing)
+  - M26 given `mein_bot` and seeds 1–3 on the `labor` map at `leicht` / then it survives five waves each time, played entirely with the package under test; it returns a list of dictionaries for a view in the build phase and in a wave (exposes: a bot that does nothing)
   - stand-ins: `speichern` refuses with the mission label; `auswertung` leaves the laboratory printing raw rows; `bot` is the random bot
-  - given a match in the build phase with towers, village levels and spell levels / when saved and loaded into a new `Spiel` / then `zustand()` is equal; saving during a wave is refused; a damaged file, a file from another map, an unknown tower kind and a level above the maximum are refused with a reason and the running match's `zustand_hash()` is unchanged (exposes: half-loaded matches)
+  - given a match in the build phase with towers, village levels and spell levels / when saved and loaded into a new `Spiel` / then `zustand()` is equal, including `endlos` for a match saved in the endless mode; saving during a wave is refused; a damaged file, a file from another map, an unknown tower kind and a level above the maximum are refused with a reason and the running match's `zustand_hash()` is unchanged (exposes: half-loaded matches)
   - given `labor.py --spiele 4 --schwierigkeit leicht --loesung` / then exit 0 and a table with wins, rate, best and mean wave; without `--loesung` on the untouched workshop / then the raw rows with the stand-in notice (exposes: laboratory unusable before mission 25)
   - given the autopilot key in an `Anwendung` / then the bot's actions are applied each build phase and second, and the key switches it off again (exposes: autopilot that cannot be stopped)
   Verify: new tests fail for these reasons; `make lint` green.
@@ -504,7 +528,7 @@ open challenges
 - [ ] T042 [US8] Write `tests/lernen/test_dokumente.py`. Cases (FR-033, SC-009, SC-010), at least:
   - given each registry entry / then its document file exists and has a section for the mission with the parts: story, "Du übst", "Vertrag", "Beispiele", "Fertig, wenn", at least two `<details>` hints, "Im Spiel", "Denkfrage" (exposes: missing documents or parts)
   - given every code span in the documents that looks like a file path, a `python …` command, a `module.name` reference or a key / then the file exists, the command's script and options exist, the name exists in `werkstatt/`, and the key is one the presentation handles (exposes: documentation that lies)
-  - given the start page / then it contains the three learner commands of quickstart.md in order and links to every track document, the parents' page, the extension guide and the open challenges, and every link target exists (exposes: dead links)
+  - given the start page / then it contains the first three learner commands of quickstart.md in order (install, start the game, test mission 1) and links to every track document, the parents' page, the extension guide and the open challenges, and every link target exists (exposes: dead links)
   - given the track documents in order A to E / then the mean number of worked examples per mission does not rise from A to E (exposes: help that does not fade)
   Verify: new tests fail for these reasons; `make lint` green.
 
@@ -541,7 +565,17 @@ open challenges
 
 ## Phase 11: Polish
 
-- [ ] T046 Final verification and hand-over material. Run `make check`, `make test-lang` and
+- [ ] T046 Prove "always playable" over all eighteen capabilities in the slow test
+  `tests/kern/lang_faehigkeiten.py` (FR-023, FR-024, SC-001, SC-002). For every capability `k` of
+  the workbench registry: (a) with only `k` forced open on the reference, and (b) with everything
+  forced open except `k` and its prerequisites, a match on `flusstal` at `leicht` plays three
+  waves at `LABOR_DT` with a simple scripted defence, one village purchase, one spell cast and one
+  save and load attempted, without any exception, and the open set is as expected; (c) the
+  untouched `werkstatt` does the same; (d) for each capability, its stand-in's result differs from
+  the reference's on one stated input. The outcome may already hold: then record it and close
+  green; any failure is fixed in the engine or the stand-in, never in the test's expectation.
+  Verify: `make test-lang` (known red excepted).
+- [ ] T047 Final verification and hand-over material. Run `make check`, `make test-lang` and
   `make bench` on the final tree and record the results; regenerate `docs/bilder/`; walk through
   `quickstart.md` step by step under the dummy driver and record each step's outcome; check each
   success criterion SC-001 to SC-010 against its test or measurement in a table in the evidence;

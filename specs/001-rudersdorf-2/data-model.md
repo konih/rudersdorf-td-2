@@ -1,7 +1,7 @@
 # Data model: Rudersdorf 2
 
 All content tables live in `rudersdorf/daten.py` as plain dictionaries and lists. Numbers below
-are starting values; task T027 (balance) may change numbers but not keys or shapes.
+are starting values; task T033 (balance) may change numbers but not keys or shapes.
 
 ## Geometry
 
@@ -109,20 +109,20 @@ Shape as in the contract (missions 16–18). Bonus names (all additive):
 least 1 remains), `bau_rabatt_prozent`, `zauber_stufe_max`, `zauber_tempo_prozent`,
 `mana_pro_sekunde`, `mana_max`, `heilung_pro_welle`, `glocken_intervall` (seconds between bell strokes; 0 or less means no bells; church level 4
 gives +40 and level 5 gives −15, so the sum is 40, then 25), `glocken_dauer`, `schmiede_stufe` (unlocks master
-upgrades), `zauber_frei_<name>` (1 unlocks a spell).
+upgrades). Spells are unlocked only by `ZAUBER[name]["frei_ab_kirche"]`, not by a bonus.
 
 | Key | Line | Levels (names) | Main bonuses | Notable requirements |
 | --- | --- | --- | --- | --- |
-| `kirche` | Kirche | Holzkapelle, Dorfkirche, Basilika, Kathedrale, Kathedrale mit Türmen | mana, heal per wave, unlocks spells (1: Segen, 2: Feuerball and Eissturm, 3: Blitzschlag, 4: Glockenschlag and bells every 40 s, 5: bells every 25 s, doubled mana rate) | 3: steinbruch 1, 24 bewohner; 4: bauhuette 2, steinbruch 2, 40 bewohner; 5: bauhuette 3, bibliothek 2, 60 bewohner |
+| `kirche` | Kirche | Holzkapelle, Dorfkirche, Basilika, Kathedrale, Kathedrale mit Türmen | mana, heal per wave, unlocks spells (1: Segen, 2: Feuerball and Eissturm, 3: Blitzschlag, 4: Glockenschlag and bells every 40 s, 5: bells every 25 s, doubled mana rate) | 3: steinbruch 1, haeuser 1; 4: bauhuette 2, steinbruch 2, haeuser 3; 5: bauhuette 3, bibliothek 2, haeuser 4 |
 | `schmiede` | Schmiede | 3 | tower damage +10 % per level, `schmiede_stufe` | 2: steinbruch 1 |
-| `markt` | Markt | 4 | gold per wave, interest, selling share | 3: 30 bewohner |
+| `markt` | Markt | 4 | gold per wave, interest, selling share | 3: haeuser 2 |
 | `steinbruch` | Steinbruch | 3 | stone per wave | none |
 | `haeuser` | Wohnhäuser | 5 | +12 bewohner per level, small gold per wave | 4: markt 2 |
 | `mauer` | Stadtmauer | 4 | village life +6 per level, armour from level 3 | 2: steinbruch 1; 4: bauhuette 1 |
 | `bauhuette` | Bauhütte | 3 | building prices −8 % per level (grid and village) | 1: steinbruch 1; 3: kirche 3 |
 | `bibliothek` | Bibliothek | 3 | `zauber_stufe_max` +1 per level (base 1), spell cooldown −10 % per level | 1: kirche 2; 3: kirche 4 |
 
-Population starts at 12. Village state: `stufen` (dict), `vorraete` (`gold`, `stein`, `mana`),
+Population starts at 12 and is shown in the game; requirements never refer to it directly. Village state: `stufen` (dict), `vorraete` (`gold`, `stein`, `mana`),
 `leben`, `max_leben`, `bewohner`, `boni` (the summed dictionary, recomputed after each purchase).
 
 ## Spells — `ZAUBER`
@@ -161,7 +161,7 @@ Key → `{"name", "klasse", "frei_ab_kirche": n, "braucht_ziel": bool, "ausbau_k
 `Spiel.sicht()` returns a new plain dictionary (no engine objects):
 
 ```text
-{"phase": str, "welle": int, "wellen_gesamt": int, "raster": list[list[str]],
+{"phase": str, "welle": int, "wellen_gesamt": int, "endlos": bool, "raster": list[list[str]],
  "starts": [zelle], "ziel": zelle, "abstaende": {zelle: int},
  "vorraete": {"gold", "stein", "mana"}, "dorf_leben": int, "dorf_max_leben": int,
  "dorf_stufen": {key: int}, "bauwerke": {zelle: {"art", "stufe", "strategie"}},
@@ -179,7 +179,7 @@ Key → `{"name", "klasse", "frei_ab_kirche": n, "braucht_ziel": bool, "ausbau_k
 ## Mission registry — `rudersdorf/missionen.py`
 
 `MISSIONEN`: list of dictionaries `{"nummer", "spur" ("A".."E"), "titel", "modul", "namen":
-[public names], "faehigkeit": key | None, "testklasse": "tests.missionen.test_mNN.MissionNN",
+[public names], "faehigkeit": key | None, "braucht": [mission numbers of other tracks it builds on], "testklasse": "tests.missionen.test_mNN.MissionNN",
 "dokument": "missionen/spur_x.md#anchor", "sterne": 1..3}`. Single source for the test runner,
 the mission board, the stand-in labels and the documentation checks.
 

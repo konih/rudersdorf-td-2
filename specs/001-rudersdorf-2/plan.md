@@ -27,8 +27,8 @@ Content tables and shapes: [data-model.md](data-model.md). Decisions: [research.
 
 | Principle | How the plan complies |
 | --- | --- |
-| I. Learner first | German everywhere outside `specs/`; `werkstatt/` ships unsolved and is checked by `tests/architektur/test_werkstatt.py`; `loesung/` mirrors it (parity test); reference only via `--loesung` / `RUDERSDORF_LOESUNG=1` |
-| II. Always playable | every engine call into the workshop goes through `Werkbank`; stand-ins in `rudersdorf/ersatz.py`; `tests/kern/test_ersatz.py` runs matches with every capability open and with each one open alone; a stand-in test asserts it differs from the reference result on a stated input |
+| I. Learner first | German everywhere outside `specs/`; `werkstatt/` ships unsolved (craft missions 21–23 in their faulty or untidy shipped state, the constitution's exception) and is checked by `tests/architektur/test_werkstatt.py`; `loesung/` mirrors it (parity test); reference only via `--loesung` / `RUDERSDORF_LOESUNG=1` |
+| II. Always playable | every engine call into the workshop goes through `Werkbank`; stand-ins in `rudersdorf/ersatz.py`; `tests/kern/test_ersatz_spiel.py` and `tests/kern/lang_faehigkeiten.py` run matches with every capability open, each one open alone and each one solved alone; a stand-in test asserts it differs from the reference result on a stated input |
 | III. Pure deterministic core | `tests/architektur/test_schichten.py` forbids the imports; `Spiel.zustand_hash()` compared across runs |
 | IV. Tests first | every behaviour story has a test task before its implementation task in `tasks.md` |
 | V. Content is data | all tables in `rudersdorf/daten.py`; `tests/kern/test_daten.py` validates shapes and references |
@@ -128,6 +128,7 @@ class Werkbank:
     def lade_neu(self) -> None: ...              # re-import modules; on failure raise Lernfehler and keep the old ones
     def ist_offen(self, faehigkeit: str) -> bool: ...
     def offene(self) -> list[str]: ...           # open capabilities, registry order
+    def wartet_auf(self, faehigkeit: str) -> list[int]: ...   # mission numbers it waits for; [] if none
     def rufe(self, faehigkeit: str, name: str, *args, **kwargs): ...
     def erzeuge(self, faehigkeit: str, klasse: str, *args, **kwargs): ...
     def strategien(self) -> dict: ...            # name -> callable; {"zufall": ...} while open
@@ -137,7 +138,21 @@ def waehle_paket(loesung: bool | None = None) -> str: ...   # None: read RUDERSD
 
 `rufe` calls the workshop function `name` of the capability's module; on `NochOffen` it marks the
 capability open and returns the stand-in's result; on any other exception it raises `Lernfehler`
-built from the innermost traceback frame inside the workshop package. `erzeuge` does the same for
+built from the innermost traceback frame inside the workshop package. `Lernfehler` also carries
+the formatted original traceback as `spur` (a string); whoever shows the error prints `spur` to
+standard error. When the engine itself finds a returned value unusable (a strategy returning
+something that is not a candidate), it raises `Lernfehler` located at the first line of that
+workshop function, with `art = "Rückgabewert"`.
+
+Probing (at construction and after `lade_neu`): `PROBEN` in `werkbank.py` maps each capability to
+a list of small functions that each call one workshop function, or construct one class and call
+each of its mission methods once, with the smallest valid input from the contract's rules. A
+probe that raises `NochOffen`, or finds the module or name missing, makes the capability open; any
+other exception during a probe is ignored (the capability counts as solved and the error will
+surface as a `Lernfehler` during play). There is no time guard: a learner loop that never ends
+hangs the program as any Python program would, and the mission documents say how to stop it.
+`ABHAENGIG` maps a capability to the capabilities it waits for (contract, *Capabilities and
+stand-ins*); a capability with an open prerequisite is open. `erzeuge` does the same for
 classes and wraps the instance so that its method calls are routed the same way. While a
 capability is open, `rufe` and `erzeuge` go straight to the stand-in.
 
@@ -173,6 +188,7 @@ class Spiel:
     def hole_ereignisse(self) -> list: ...
     def sicht(self) -> dict: ...
     def fuehre_aus(self, aktion: dict) -> bool: ...
+    def statistik(self) -> dict: ...                   # {"welle", "besiegt", "gold_verdient"}
     def zustand(self) -> dict: ...                     # the dictionary of mission 24
     def zustand_hash(self) -> str: ...
     def speichere(self, pfad) -> bool: ...
@@ -192,6 +208,11 @@ Rules the core tests fix (details in `spec.md` and `data-model.md`):
   walkers and the straight remaining distance for flyers.
 - The cells in `besetzt` for the placement rule are every walking enemy's `zelle` and `ziel_zelle`.
 - All randomness comes from `self.zufall = random.Random(saat)`.
+- `Gegner.erleide_schaden(menge, art) -> float` applies the `schadensarten` capability with its own
+  `resistenzen`, lowers `leben` (never below 0) and returns the life actually lost. Towers,
+  effects and spells always pass the raw amount.
+- `fuehre_aus` returns `False` for an action kind whose story is not implemented yet; each story
+  adds its own kinds (village: T023, spells: T026).
 
 ### `rudersdorf/labor/lauf.py`
 
@@ -208,19 +229,29 @@ per build phase and then every simulated second during a wave; its actions are p
 
 ```python
 # fenster.py
-def starte(werkbank, karte=None, schwierigkeit=None, saat=None) -> int: ...   # blocks until the window closes
+def starte(werkbank, karte=None, schwierigkeit=None, saat=None, probelauf=None) -> int: ...   # blocks until the window closes, or for `probelauf` seconds
 class Anwendung:
     def __init__(self, werkbank, flaeche=None): ...   # flaeche given: draw there, open no window
     def ereignis(self, ereignis) -> None: ...         # one pygame event
     def aktualisiere(self, sekunden: float) -> None: ...
     def zeichne(self) -> None: ...
-# vorschau.py
+# vorschau.py   (also runnable: python -m rudersdorf.ansicht.vorschau ORDNER, always with the reference)
 def erzeuge_bilder(ziel_ordner, werkbank) -> list[str]: ...   # file names written
+def main(argv=None) -> int: ...
+
+# spielen.py
+def main(argv=None) -> int: ...   # --loesung --karte NAME --schwierigkeit NAME --saat N --probelauf SEKUNDEN
 ```
 
+`--probelauf SEKUNDEN` is a developer option: the game runs that long (auto-starting waves) and
+exits with status 0, or 1 if an error panel appeared. `aktualisiere(sekunden)` multiplies the time
+by the speed, adds it to a backlog, runs whole steps of `DT` from the backlog, at most 12 per
+call, and discards any backlog beyond those 12 steps.
+
 Keys: `1`–`6` choose a building; left click builds or selects; right click or `Esc` cancels;
-`A` upgrade, `V` sell, `T` next targeting rule; `Q W E R G` cast the five spells; `N` or space
-start the wave or pause; `F` speed; `F1` distances, `F2` ranges, `F3` frame rate; `F5` reload the
+`A` upgrade, `V` sell, `T` next targeting rule; `Q W E R G` cast the five spells; `N` starts the
+next wave (nothing during a wave); space starts the wave in the build phase and pauses or continues
+during a wave; `P` pauses or continues; `F` speed; `F1` distances, `F2` ranges, `F3` frame rate; `F5` reload the
 workshop; `Tab` mission board; `B` autopilot; `S` / `L` save and load; `M` sound; `F11` full screen.
 
 ## Fitness functions (architecture guards)

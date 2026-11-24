@@ -24,3 +24,5 @@ select = ["E4", "E7", "E9", "F", "I", "B"]
 [tool.ruff.lint.per-file-ignores]
 # In der Werkstatt sind Werkzeuge für die Missionen schon importiert.
 "werkstatt/*.py" = ["F401"]
+# Die Fehlerjagd enthält absichtlich einen veränderlichen Standardwert.
+"werkstatt/fehlerjagd.py" = ["F401", "B006"]

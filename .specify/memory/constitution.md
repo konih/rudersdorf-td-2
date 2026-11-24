@@ -11,8 +11,10 @@ to protect one of two things: the learner's experience, or the ability to change
   and comments in `werkstatt/`, `loesung/` and the engine. Specification documents under `specs/`
   are English.
 - The learner's workspace is `werkstatt/`. It MUST ship unsolved: every mission function or method
-  body raises `NochOffen`. The complete reference lives in `loesung/` with the same module names,
-  the same public names and the same signatures.
+  body raises `NochOffen`. The one exception is the craft missions whose subject is existing code
+  (the bug hunt, the clean-up and the own-tests mission): they ship deliberately faulty, untidy or
+  incomplete, because repairing them is the mission. The complete reference lives in `loesung/`
+  with the same module names, the same public names and the same signatures.
 - The reference is NEVER loaded silently. Only the explicit `--loesung` switch (or the
   `RUDERSDORF_LOESUNG=1` variable used by developer tooling) selects it.
 - Mission tests check behaviour, never the shape of the source code. The only exceptions are the
@@ -82,4 +84,4 @@ This constitution overrides other project guidance. A change to it needs the own
 and a note in the commit message saying what changed and why. Commits carry only the change's
 own content: no co-author trailers and no mention of tools or assistants.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-24 | **Last Amended**: 2026-11-24
+**Version**: 1.1.0 | **Ratified**: 2026-11-24 | **Last Amended**: 2026-11-24
