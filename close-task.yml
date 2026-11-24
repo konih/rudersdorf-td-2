@@ -1,0 +1,30 @@
+# close-task.yml — lokale Schicht für /close-task in rudersdorf-td-2.
+version: 1
+
+layers:
+  inner:                      # nach jeder Änderung
+    - "make lint"
+  task:                       # einmal, auf dem endgültigen Stand
+    - "make check"
+  milestone:                  # nur wenn die Aufgabe es verlangt
+    - "make test-lang"
+    - "make bench"
+
+review:
+  mode: always
+
+limits:
+  max_corrections: 3
+  tasks_per_run: 1
+
+protected:
+  - CLAUDE.md
+  - .specify/memory/constitution.md
+  - close-task.yml
+  - Makefile
+  - .github/workflows/pruefung.yml
+
+hints: |
+  Tests laufen ohne Fenster (SDL_VIDEODRIVER=dummy) und gegen loesung/ (RUDERSDORF_LOESUNG=1); beides setzt das Makefile.
+  werkstatt/ wird absichtlich ungelöst ausgeliefert: Missionstests gegen werkstatt/ sind rot, das ist kein Fehler.
+  rudersdorf/kern, rudersdorf/labor, werkstatt und loesung importieren niemals pygame.

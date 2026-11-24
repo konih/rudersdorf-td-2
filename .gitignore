@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+spielstand.json
+einstellungen.json
+.fortschritt.json
+# Review-Protokolle: nur register.md und leg-*.md werden eingecheckt
+**/reviews/**/*.err
+**/reviews/**/legs.key
+**/reviews/**/legs.log
