@@ -156,8 +156,9 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   - stand-ins: `schadensarten` returns the damage unchanged for factor 0.4; `effekte` classes exist with factor 1.0 and no damage; `faehigkeiten` classes return `[]` and heal nobody; `wellen` returns only `ork`
   Verify: every new test fails with `NochOffen` or an assertion; `make lint` green.
   — closed 2026-11-24, evidence: evidence/T010.md
-- [ ] T011 [US1] Implement `loesung/horde.py` (missions 11–15) and the stand-ins `schadensarten`,
+- [x] T011 [US1] Implement `loesung/horde.py` (missions 11–15) and the stand-ins `schadensarten`,
   `effekte`, `faehigkeiten`, `wellen`. Turn T010's tests green. Verify: `make check` (known red excepted).
+  — closed 2026-11-24, evidence: evidence/T011.md
 - [ ] T012 [US1] Write the core tests for map, movement and building in `tests/kern/test_karte.py`,
   `tests/kern/test_bewegung.py`, `tests/kern/test_bauen.py`, with stubs for `rudersdorf/kern/karte.py`,
   `gegner.py`, `bauwerk.py`, `dorf.py` and `spiel.py` carrying the plan's signatures (plan.md, *Fixed engine interfaces*; enemies are placed with `Spiel.erzeuge_gegner`). Tests build a

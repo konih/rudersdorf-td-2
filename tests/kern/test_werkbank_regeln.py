@@ -175,6 +175,98 @@ class Proben(unittest.TestCase):
         self.assertIsNot(werkbank_modul.probe_sicht(), werkbank_modul.probe_sicht())
 
 
+# Mit Absicht ausgeschrieben: die Fähigkeiten, deren Referenz fertig ist (Spuren A bis C).
+# Wer eine weitere Spur der Referenz baut, trägt ihre Fähigkeiten hier ein.
+IN_DER_REFERENZ_GELOEST = (
+    "karten",
+    "wegfindung",
+    "bauregel",
+    "reichweite",
+    "strategien",
+    "kettenblitz",
+    "ausbau",
+    "schadensarten",
+    "effekte",
+    "faehigkeiten",
+    "wellen",
+)
+
+
+class ProbenGegenDieReferenz(unittest.TestCase):
+    """Die Proben gegen die fertige Referenz.
+
+    Die ungelöste Werkstatt meldet sich schon im Bauplan einer Klasse als offen. Ob eine Probe
+    auch die Methoden richtig aufruft, zeigt sich darum erst an gelöstem Code. Und die Werkbank
+    überhört beim Proben jeden anderen Fehler: Eine Probe mit falschen Argumenten hielte eine
+    gelöste Mission stillschweigend für gelöst, ohne sie je erreicht zu haben.
+    """
+
+    def test_jede_probe_laeuft_an_der_referenz_ohne_fehler_durch(self):
+        for schluessel in IN_DER_REFERENZ_GELOEST:
+            modul = importlib.import_module(f"loesung.{FAEHIGKEITEN[schluessel]['modul']}")
+            for nummer, probe in enumerate(PROBEN[schluessel], start=1):
+                with self.subTest(faehigkeit=schluessel, probe=nummer):
+                    try:
+                        probe(modul)
+                    except Exception as fehler:
+                        self.fail(
+                            f"Die Probe {nummer} für {schluessel} passt nicht zur Referenz: "
+                            f"{type(fehler).__name__}: {fehler}"
+                        )
+
+    def test_die_werkbank_haelt_diese_faehigkeiten_der_referenz_fuer_geloest(self):
+        werkbank = Werkbank("loesung")
+        for schluessel in IN_DER_REFERENZ_GELOEST:
+            with self.subTest(faehigkeit=schluessel):
+                self.assertFalse(werkbank.ist_offen(schluessel))
+                self.assertEqual([], werkbank.wartet_auf(schluessel))
+
+    def test_die_proben_der_klassen_rufen_jede_methode_der_mission_selbst_auf(self):
+        # Eine halb gelöste Klasse meldet sich vielleicht nur in einer einzigen Methode als
+        # offen. Darum muss die Probe jede Methode jeder Klasse selbst aufrufen, auch die
+        # geerbten: Es genügt nicht, dass eine andere Methode sie nebenbei benutzt.
+        for schluessel in ("effekte", "faehigkeiten"):
+            modul = importlib.import_module(f"loesung.{FAEHIGKEITEN[schluessel]['modul']}")
+            erwartet = set()
+            for name in FAEHIGKEITEN[schluessel]["namen"]:
+                klasse = getattr(modul, name)
+                if isinstance(klasse, type):
+                    for methode, _ in inspect.getmembers(klasse, inspect.isfunction):
+                        if not methode.startswith("_"):
+                            erwartet.add((name, methode))
+            mitschrift = Mitschrift()
+            for probe in PROBEN[schluessel]:
+                probe(mitschrift)
+            self.assertEqual(set(), erwartet - mitschrift.aufrufe, schluessel)
+
+
+class Mitschrift:
+    """Steht an der Stelle eines Moduls der Werkstatt und schreibt nur mit.
+
+    Jeder Name mit großem Anfangsbuchstaben ist eine Klasse: Ihre Objekte merken sich in
+    ``aufrufe`` jedes Paar (Klasse, Methode), das eine Probe bei ihnen aufruft. Jeder andere
+    Name ist eine Funktion, die nichts tut.
+    """
+
+    def __init__(self):
+        self.aufrufe = set()
+
+    def __getattr__(self, name):
+        if name[0].isupper():
+            return lambda *args, **kwargs: MitschriftObjekt(self.aufrufe, name)
+        return lambda *args, **kwargs: None
+
+
+class MitschriftObjekt:
+    def __init__(self, aufrufe, klasse):
+        self._aufrufe = aufrufe
+        self._klasse = klasse
+
+    def __getattr__(self, methode):
+        self._aufrufe.add((self._klasse, methode))
+        return lambda *args, **kwargs: None
+
+
 class Entscheidungen(basis.WerkbankTest):
     def test_altes_objekt_antwortet_nach_dem_oeffnen_ueber_den_ersatz(self):
         self.trage_ersatz_ein({"effekte": {"Frost": basis.ErsatzFrost}})
