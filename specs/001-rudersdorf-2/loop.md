@@ -76,6 +76,7 @@ Holistic run at B: not run yet
 |---|---|---|---|
 | T001 | CLOSED | reviewer A (diff), 1 round, CONCERNS → APPROVE (only finding: final `make check` pending, then run green); no paid leg (no trigger) | none; proposal: forbid `rudersdorf/labor` → `rudersdorf.ansicht` in the layering guard (not in the task text) |
 | T002 | CLOSED | reviewer A (diff), 2 rounds: round 1 CONCERNS (2 WARNINGs, both verified and fixed: split-only enemy was purchasable under mission 15's rule; tower values unchecked), round 2 CONCERNS (1 NOTE, wording fixed, design change rejected) → APPROVE; no paid leg (no trigger) | none; note for T011/T028: `daten.GEGNER` as a whole is the catalogue for `erzeuge_welle` (`schleimling` has `ab_welle` = `NIE_VON_SELBST`, the boss a price that is never used) |
+| T003 | CLOSED | reviewer A (diff), 1 round, CLEAN → APPROVE; no paid leg (no trigger) | none; notes for later tasks: document anchors are `#mission-N` (T042–T045); the names-only parity rule for missions 21–23 means "every registry name exists in both packages" (T040); in the module of mission 8 the reference may add functions with the parameters `kandidaten, turm` |
 
 ## Known red
 
@@ -100,6 +101,10 @@ Tests from a test task changed by a later task (close-task `TEST` class); each o
 - A table handed to learner code must be valid under the contract's rule for that code: test the real table with the contract's rule written out in the test, not only its keys (T002).
 - A faulty-copy self-test changes a value nothing else refers to, or the checker rightly reports two errors; a cycle self-test needs a cycle that exists only through the implicit "level before" edge (T002).
 - `make check` takes under a second while the engine is small: run it before the review as well and record it, so the reviewer has no pending gate to flag (T002).
+- A written-out list in a guard is compared with something it was not filtered by; a test that filters the registry by the list and compares the result with the list cannot fail (T003).
+- Besides invented fixtures, break each guarded place of a copy of the real package in turn (each placeholder, each signature): that proves the guard's scope has no hole (T003).
+- The parity guard reports every public function or method the reference has and the workshop lacks: reference helpers start with an underscore or are inner functions; the only exception is extra strategies `(kandidaten, turm)` in `strategien.py` (T003).
+- The workshop guard pins each placeholder to the text `Mission N: <Titel>` of the registry, and `tests/architektur/test_missionen.py` writes the contract's tables out again: a changed title, name or module is changed in the registry, that test and the stubs together (T003).
 
 ## Where a human should look first
 

@@ -51,7 +51,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   exists; price and `ab_welle` are positive for generated kinds; each map file is 16 × 24, uses
   only known characters, has one `Z`, at least one `S`, and `D` exactly in columns 18–23;
   `zwei_tore` has two `S`. Verify: `make check`. — closed 2026-11-24, evidence: evidence/T002.md
-- [ ] T003 Create the mission registry, the unsolved workshop and its guards.
+- [x] T003 Create the mission registry, the unsolved workshop and its guards.
   `rudersdorf/missionen.py` with all 26 entries (data-model.md, *Mission registry*), including
   `braucht` (mission 5: [2, 3, 4]; mission 20: [9, 12, 13]; mission 26: [2, 3, 4, 5, 6, 7]; else empty). Stub modules
   for missions 1–20 and 24–26 in `werkstatt/` and `loesung/` with exactly the contract's names and
@@ -64,6 +64,7 @@ A test task closes on a verified red; its tests are fixed points for the impleme
   exists in both packages: same public functions, classes and methods with the same parameter
   names and defaults; modules of missions 21–23 are compared by public names only). Both tests
   prove themselves on a temporary package with one violation. Verify: `make check`.
+  — closed 2026-11-24, evidence: evidence/T003.md
 
 ---
 
