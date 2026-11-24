@@ -1,10 +1,10 @@
 # Loop — 001-rudersdorf-2
 
 Repo: `/home/koni/Projects/rudersdorf-td-2` · Branch: `001-rudersdorf-2` · Base: `main` · Started: 2026-11-24 · Reviewers: two-model duo
-Next: stage L — dispatch T001
-Budget: paid review legs 2/14 (B reserve 3) · active hours 0/30 (sessions: 2026-11-24 start–) · source: set by the orchestrator at orient (default is claude=12, hours=8; raised because the feature has 46 tasks)
+Next: stage L — dispatch the task `task.sh next` names
+Budget: paid review legs 3/14 (B reserve 3) · active hours 0/30 (sessions: 2026-11-24 start–) · source: set by the orchestrator at orient (default is claude=12, hours=8; raised because the feature has 46 tasks)
 
-Budget arithmetic, in paid review legs: cap 14 · stage B reserve 3 · spent 2 (stage R, two rounds) · left for L 9.
+Budget arithmetic, in paid review legs: cap 14 · stage B reserve 3 · spent 3 (stage R two rounds, T005 one) · left for L 8.
 Estimate per task: 0 (the per-task leg is reviewer A, not a paid leg); 1 only when a diff touches
 CI, the Makefile, `close-task.yml`, dependencies or security posture, or reviewer A says BLOCK.
 Expected over 46 tasks: 2–4.
